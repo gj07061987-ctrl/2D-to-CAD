@@ -1,0 +1,2560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="author" content="George Joseph">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drawing2Model – 2D PDF / DWG / DXF to 3D · by George Joseph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#050912; --panel:rgba(11,17,29,.86); --line:rgba(110,190,255,.16); --line2:rgba(110,190,255,.34);
+    --txt:#dce8f5; --dim:#7f90a8; --acc:#33dff0; --acc-ink:#021418; --acc2:#ffb938; --err:#ff5d73; --ok:#5cf2a8;
+    --model:#19c3c3;
+    --ui:"Chakra Petch","Segoe UI",system-ui,sans-serif; --mono:"JetBrains Mono",Consolas,monospace;
+  }
+  * { box-sizing:border-box; scrollbar-width:thin; scrollbar-color:#233450 transparent; }
+  [hidden] { display:none !important; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--txt); font:13px/1.45 var(--ui); }
+  #app { display:grid; grid-template-columns:340px 1fr; height:100vh; }
+  aside { position:relative; z-index:5; background:linear-gradient(180deg,rgba(10,18,32,.98),rgba(5,9,18,.99)); border-right:1px solid var(--line2);
+          box-shadow:8px 0 40px rgba(51,223,240,.05); overflow-y:auto; padding:14px 14px 48px; }
+  .brand { display:flex; gap:11px; align-items:center; margin:0 0 16px; }
+  .brand svg { flex:none; filter:drop-shadow(0 0 8px rgba(51,223,240,.55)); }
+  .brand h1 { font-size:18px; font-weight:600; letter-spacing:.03em; margin:0; line-height:1.1; color:var(--txt); }
+  .brand .small { display:block; margin-top:2px; }
+  .brand .by { display:block; margin-top:3px; font:500 11px var(--mono); color:var(--acc); letter-spacing:.02em; }
+  .credit { position:absolute; right:20px; bottom:16px; z-index:2; font:500 11px var(--mono); color:var(--dim); pointer-events:none; text-shadow:0 0 8px rgba(0,0,0,.8); }
+  .credit b { color:var(--acc); font-weight:500; }
+  section.box { position:relative; background:rgba(255,255,255,.025); border:1px solid var(--line); border-radius:9px; padding:11px 12px 12px; margin-bottom:12px; }
+  section.box::before { content:""; position:absolute; left:-1px; top:12px; width:2px; height:18px; background:var(--acc); box-shadow:0 0 10px var(--acc); border-radius:2px; }
+  section.box > h2 { display:flex; align-items:center; gap:9px; font-size:13px; font-weight:600; letter-spacing:.02em; color:var(--txt); margin:0 0 9px; }
+  section.box > h2 i { display:inline-grid; place-items:center; width:21px; height:21px; font:500 11px var(--mono); font-style:normal; color:var(--acc);
+                       border:1px solid var(--line2); border-radius:6px; background:rgba(51,223,240,.08); }
+  label { display:block; margin:5px 0; }
+  label.inl { display:flex; align-items:center; gap:7px; }
+  .row { display:flex; gap:7px; align-items:center; flex-wrap:wrap; margin:5px 0; }
+  .row > label { margin:0; }
+  input[type=checkbox] { accent-color:var(--acc); width:14px; height:14px; margin:0; }
+  input[type=number], input[type=text], select { background:#070c16; color:var(--txt); border:1px solid var(--line); border-radius:6px; padding:5px 7px; width:100%; font:inherit; transition:border-color .15s, box-shadow .15s; }
+  input[type=number], input[type=text].hex { font-family:var(--mono); font-size:12px; }
+  input:focus, select:focus { outline:none; border-color:var(--acc); box-shadow:0 0 0 3px rgba(51,223,240,.16); }
+  .row input[type=number] { width:92px; }
+  input[type=file] { width:100%; color:var(--dim); font:inherit; font-size:12px; }
+  input[type=file]::file-selector-button { margin-right:10px; background:linear-gradient(180deg,#52ecfa,#1fb9cc); color:var(--acc-ink); border:0; border-radius:6px; padding:6px 11px; font:600 12px var(--ui); cursor:pointer; }
+  button { background:linear-gradient(180deg,#16243b,#0f1a2d); color:var(--txt); border:1px solid var(--line2); border-radius:6px; padding:6px 11px; cursor:pointer; font:inherit; transition:border-color .15s, box-shadow .15s, background .15s; }
+  button:hover { border-color:var(--acc); box-shadow:0 0 0 1px rgba(51,223,240,.22), 0 0 16px rgba(51,223,240,.18); }
+  button:focus-visible, .sw:focus-visible { outline:2px solid var(--acc); outline-offset:2px; }
+  button.primary { background:linear-gradient(180deg,#58eefb,#1db5c9); color:var(--acc-ink); border-color:#58eefb; font-weight:600; box-shadow:0 0 18px rgba(51,223,240,.28); }
+  button.primary:hover { box-shadow:0 0 26px rgba(51,223,240,.5); }
+  button.active { border-color:var(--acc2); box-shadow:0 0 0 1px var(--acc2), 0 0 14px rgba(255,185,56,.3); }
+  button:disabled { opacity:.4; cursor:default; box-shadow:none; border-color:var(--line); }
+  .tabs { display:flex; margin-bottom:9px; border:1px solid var(--line2); border-radius:7px; overflow:hidden; }
+  .tabs button { flex:1; border:0; border-radius:0; background:transparent; box-shadow:none; }
+  .tabs button + button { border-left:1px solid var(--line2); }
+  .tabs button.on { background:linear-gradient(180deg,#58eefb,#1db5c9); color:var(--acc-ink); font-weight:600; }
+  .list { max-height:180px; overflow-y:auto; border:1px solid var(--line); border-radius:6px; padding:5px; background:#070c16; }
+  .list label { margin:1px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .list .cnt { color:var(--dim); font-family:var(--mono); font-size:11px; }
+  .small { color:var(--dim); font-size:12px; }
+  .swatches { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin:2px 0 10px; }
+  .sw { aspect-ratio:1; padding:0; border-radius:7px; border:1px solid rgba(255,255,255,.22); position:relative; }
+  .sw[aria-pressed=true] { outline:2px solid #fff; outline-offset:2px; box-shadow:0 0 16px currentColor; }
+  input[type=color] { width:40px; height:30px; padding:2px; border:1px solid var(--line2); background:#070c16; border-radius:6px; cursor:pointer; }
+  #status { position:fixed; left:0; bottom:0; width:340px; z-index:6; padding:8px 14px; background:rgba(4,8,16,.96); border-top:1px solid var(--line2); font:11.5px var(--mono); color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #status::before { content:""; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--dim); margin-right:9px; vertical-align:middle; }
+  #status.err { color:var(--err); } #status.err::before { background:var(--err); box-shadow:0 0 8px var(--err); }
+  #status.ok { color:var(--ok); } #status.ok::before { background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  main { display:grid; grid-template-columns:1fr 1fr; min-width:0; background:var(--bg); }
+  .pane { position:relative; min-width:0; overflow:hidden; border-left:1px solid var(--line); }
+  .pane.p2d { background:radial-gradient(circle at 1px 1px, rgba(120,190,255,.17) 1px, transparent 1.6px) 0 0/24px 24px, radial-gradient(120% 90% at 50% 0%, #0b1424, #050912); }
+  .pane.p3d { background:radial-gradient(70% 60% at 50% 64%, color-mix(in srgb, var(--model) 22%, transparent), transparent 72%), radial-gradient(120% 90% at 50% 0%, #0c1628, #040710); }
+  .pane::after { content:""; position:absolute; inset:10px; pointer-events:none; z-index:3; --c:rgba(80,225,255,.6);
+    background:
+      linear-gradient(var(--c),var(--c)) 0 0/16px 1px no-repeat, linear-gradient(var(--c),var(--c)) 0 0/1px 16px no-repeat,
+      linear-gradient(var(--c),var(--c)) 100% 0/16px 1px no-repeat, linear-gradient(var(--c),var(--c)) 100% 0/1px 16px no-repeat,
+      linear-gradient(var(--c),var(--c)) 0 100%/16px 1px no-repeat, linear-gradient(var(--c),var(--c)) 0 100%/1px 16px no-repeat,
+      linear-gradient(var(--c),var(--c)) 100% 100%/16px 1px no-repeat, linear-gradient(var(--c),var(--c)) 100% 100%/1px 16px no-repeat; }
+  .pane .title { position:absolute; left:18px; top:16px; z-index:2; font-size:12px; font-weight:500; color:var(--txt); pointer-events:none;
+                 background:rgba(6,11,21,.72); border:1px solid var(--line); border-radius:6px; padding:4px 10px; backdrop-filter:blur(6px); }
+  #c2d { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:crosshair; }
+  #c3d { position:absolute; inset:0; }
+  #hint2d { position:absolute; left:18px; bottom:18px; right:18px; z-index:2; font-size:12px; color:var(--acc2); pointer-events:none; }
+  #hint2d:empty { display:none; }
+  .legend span { display:inline-block; width:10px; height:10px; margin:0 5px 0 12px; vertical-align:middle; border-radius:2px; }
+  details summary { cursor:pointer; color:var(--acc); }
+  details p, details li { color:var(--dim); font-size:12px; }
+  .stats { font-family:var(--mono); font-size:11.5px; white-space:pre; color:#a9bdd4; margin-top:8px; }
+  @media (max-width:900px) {
+    #app { grid-template-columns:1fr; height:auto; } aside { max-height:none; } main { grid-template-columns:1fr; grid-auto-rows:60vh; } #status { width:100%; }
+  }
+  @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="app">
+<aside>
+  <header class="brand"><svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+    <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7af4ff"/><stop offset="1" stop-color="#2a7bff"/></linearGradient></defs>
+    <path d="M17 3l12 7v14l-12 7-12-7V10z" stroke="url(#lg)" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M5 10l12 7 12-7M17 17v14" stroke="url(#lg)" stroke-width="1.6" stroke-linejoin="round" opacity=".75"/>
+  </svg><div><h1>Drawing2Model</h1><span class="small">2D drawing to 3D solid</span><span class="by">Created by George Joseph</span></div></header>
+
+  <section class="box">
+    <h2><i>1</i>Open drawing</h2>
+    <input type="file" id="file" accept=".pdf,.dxf,.dwg">
+    <label id="pageRow" hidden>PDF page <select id="page"></select></label>
+    <div id="fileInfo" class="small"></div>
+  </section>
+
+  <section class="box">
+    <h2><i>2</i>Units &amp; scale</h2>
+    <div class="row"><label>1 drawing unit =</label><input type="number" id="unit" step="any" value="1"><span class="small">mm</span></div>
+    <div class="row"><label>Drawing scale 1 :</label><input type="number" id="scale" step="any" value="1"></div>
+    <div class="row"><button id="btnCalib" title="Click two points on the drawing and enter the real distance">Calibrate from 2 points</button></div>
+  </section>
+
+  <section class="box">
+    <h2><i>3</i>Layers / line styles</h2>
+    <label class="inl"><input type="checkbox" id="ignDashed" checked> Ignore dashed lines (center / hidden)</label>
+    <div class="row"><button id="layAll">All</button><button id="layNone">None</button></div>
+    <div id="layers" class="list"><span class="small">Load a drawing…</span></div>
+  </section>
+
+  <section class="box">
+    <h2><i>4</i>Conversion</h2>
+    <div class="tabs"><button id="tabExtrude" class="on">Extrude</button><button id="tabRevolve">Revolve</button><button id="tabOrtho">3 views</button></div>
+    <div id="pExtrude">
+      <div class="row"><label>Thickness</label><input type="number" id="thk" value="10" step="any" min="0"><span class="small">mm</span></div>
+      <div class="row"><button id="btnCrop">Select region</button><button id="btnCropClr">Whole drawing</button></div>
+    </div>
+    <div id="pRevolve" hidden>
+      <div class="small">Select a half-profile (or full section) and its centre line. The part is spun around that axis.</div>
+      <div class="row"><label>Axis</label><select id="revDir" style="width:auto"><option value="v">Vertical line</option><option value="h">Horizontal line</option></select>
+        <input type="number" id="axisPos" step="any" placeholder="auto"><span class="small">drawing units</span></div>
+      <div class="row"><button id="btnAxisDetect" class="primary">Detect centre line</button><button id="btnAxisPick">Pick on drawing</button><button id="btnAxisAuto">Region edge</button></div>
+      <div class="row"><label>Sweep</label><input type="number" id="revAngle" value="360" min="1" max="360" step="any"><span class="small">°</span>
+        <select id="revSeg" style="width:auto"><option value="48">Draft</option><option value="96" selected>Normal</option><option value="192">Fine</option><option value="360">Ultra</option></select></div>
+      <div class="row"><button id="btnCrop2">Select region</button><button id="btnCropClr2">Whole drawing</button></div>
+    </div>
+    <div id="pOrtho" hidden>
+      <label>Projection
+        <select id="proj"><option value="first">First angle (ISO-E, Europe)</option><option value="third">Third angle (ISO-A, US)</option></select>
+      </label>
+      <div class="row"><button id="btnAuto" class="primary">Auto-detect views</button><button id="btnViewsClr">Clear</button></div>
+      <div class="row"><span class="small">Draw manually:</span><button data-view="front">Front</button><button data-view="top">Top</button><button data-view="side">Side</button></div>
+      <label class="inl"><input type="checkbox" id="flipSide"> Mirror side view (left ↔ right)</label>
+      <label class="inl"><input type="checkbox" id="flipTop"> Mirror top view (front ↔ back)</label>
+      <label class="inl"><input type="checkbox" id="useHidden"> Read dashed lines: blind holes and pockets <span class="small">(experimental)</span></label>
+      <div id="carveInfo" class="small"></div>
+    </div>
+    <div id="pFinish">
+      <div class="row"><label>Edges</label><select id="edgeKind" style="width:auto"><option value="none">As drawn</option><option value="chamfer">Chamfer</option><option value="fillet">Fillet</option></select>
+        <input type="number" id="edgeSize" value="2" step="any" min="0"><span class="small">mm</span></div>
+      <label class="inl"><input type="checkbox" id="edgeProfile" checked> Profile corners</label>
+      <label class="inl" id="lblCaps"><input type="checkbox" id="edgeCaps" checked> Top and bottom edges</label>
+      <label class="inl"><input type="checkbox" id="edgeConcave" checked> Include inner corners</label>
+    </div>
+    <label>Closed areas
+      <select id="fill"><option value="evenodd">Inner loops are holes</option><option value="all">Fill everything (silhouette)</option></select>
+    </label>
+    <label class="inl"><input type="checkbox" id="mainOnly" checked> Keep main outline only (drop dims, arrows, notes)</label>
+    <div class="row"><label>Join tolerance</label><input type="number" id="tol" step="any" min="0"><span class="small">drawing units</span></div>
+    <div class="small">Click a shaded area in the 2D view to toggle it solid / empty.</div>
+  </section>
+
+  <section class="box">
+    <h2><i>5</i>3D model</h2>
+    <div class="row"><button id="btnBuild" class="primary">Build 3D</button><label class="inl"><input type="checkbox" id="autoBuild" checked> Auto update</label></div>
+    <div class="row"><span class="small">Export:</span><button id="exSTL" disabled>STL</button><button id="exOBJ" disabled>OBJ</button><button id="exGLB" disabled>GLB</button><button id="exSTEP" disabled>STEP</button></div>
+    <div id="stats" class="stats"></div>
+    <div id="kernel" class="small">Geometry kernel: loading…</div>
+  </section>
+
+  <section class="box">
+    <h2><i>6</i>Render look</h2>
+    <div class="swatches" id="swatches"></div>
+    <div class="row"><input type="color" id="colorPick" value="#19c3c3" aria-label="Custom render colour"><input type="text" class="hex" id="colorHex" value="#19c3c3" maxlength="7" spellcheck="false" aria-label="Hex colour" style="width:96px"></div>
+    <label>Finish
+      <select id="finish">
+        <option value="carpaint">Car paint (clear coat)</option>
+        <option value="satin">Satin</option>
+        <option value="matte">Matte</option>
+        <option value="metal">Brushed metal</option>
+        <option value="ghost">Ghost (translucent)</option>
+      </select>
+    </label>
+    <label class="inl"><input type="checkbox" id="optEdges" checked> Edge lines</label>
+    <label class="inl"><input type="checkbox" id="optWire"> Wireframe overlay</label>
+    <label class="inl"><input type="checkbox" id="optFloor" checked> Grid and floor shadow</label>
+    <label class="inl"><input type="checkbox" id="optSpin"> Turntable rotation</label>
+    <div class="row"><button id="btnShot">Save render as PNG</button></div>
+  </section>
+
+  <details>
+    <summary>How it works / tips</summary>
+    <ul>
+      <li><b>PDF</b>: must be a vector PDF exported from CAD (scanned images are not supported). Paths are grouped by PDF layer (if present) or by line style. Filled shapes are off by default.</li>
+      <li><b>DXF</b>: read directly (lines, arcs, circles, ellipses, polylines, splines, blocks).</li>
+      <li><b>DWG</b>: read in the browser with LibreDWG (WASM, ~8&nbsp;MB, downloaded on first use). If a DWG fails, convert it to DXF with the free ODA File Converter or “Save As DXF” in AutoCAD and load the DXF.</li>
+      <li><b>Extrude</b>: closed profiles are extruded to the given thickness. Use “Select region” to pick one part on a sheet with a border / title block.</li>
+      <li><b>Revolve</b>: draw or select a half-profile with its centre line; “Detect centre line” finds the longest dashed axis-parallel line. Edges (chamfer / fillet) round the profile corners before spinning.</li>
+      <li><b>3 views</b>: front, top and side silhouettes are extruded and intersected (visual hull). Switch on “Read dashed lines” to carve blind holes and pockets whose depth is shown by hidden lines in another view (experimental, check the result).</li>
+      <li><b>Edges</b>: chamfer / fillet apply to sharp outline corners and, when extruding, to the top and bottom edges. Keep the size below half of the thinnest wall.</li>
+      <li><b>STEP</b>: exports a solid made of planar faces (curved surfaces are faceted, like STL but as a real B-rep). Good for measuring and as a reference in CAD / robot offline programming.</li>
+      <li>Axes: X = width (front view horizontal), Y = depth, Z = height. STL / OBJ are exported in mm (Z up); GLB in metres (Y up, glTF standard).</li>
+      <li>2D view: drag = pan, wheel = zoom, double-click = fit.</li>
+    </ul>
+  </details>
+</aside>
+
+<main>
+  <div class="pane p2d"><div class="title">2D drawing <span class="legend"><span style="background:var(--model)"></span>solid area<span style="background:#4a5a70"></span>ignored</span></div>
+    <canvas id="c2d"></canvas><div id="hint2d"></div></div>
+  <div class="pane p3d"><div class="title">3D model</div><div id="c3d"></div><div class="credit">Created by <b>George Joseph</b></div></div>
+</main>
+</div>
+<div id="status">Ready. Open a PDF, DXF or DWG drawing.</div>
+
+<script type="module">
+// src/app.js
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { STLExporter } from "three/addons/exporters/STLExporter.js";
+import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
+import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
+
+// src/geom.js
+import { ShapeUtils, Vector2 } from "three";
+var ringArea = (r) => {
+  let a = 0;
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) a += r[j][0] * r[i][1] - r[i][0] * r[j][1];
+  return a / 2;
+};
+function pip(x, y, r) {
+  let c = false;
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+    const xi = r[i][0], yi = r[i][1], xj = r[j][0], yj = r[j][1];
+    if (yi > y !== yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+function cleanRing(r, tol = 1e-9) {
+  const o = [];
+  for (const p of r) {
+    const q = o[o.length - 1];
+    if (!q || Math.hypot(p[0] - q[0], p[1] - q[1]) > tol) o.push([p[0], p[1]]);
+  }
+  while (o.length > 1 && Math.hypot(o[0][0] - o[o.length - 1][0], o[0][1] - o[o.length - 1][1]) <= tol) o.pop();
+  return o;
+}
+function groupRings(rings) {
+  const items = rings.map(cleanRing).filter((r) => r.length >= 3).map((r) => ({ r, a: Math.abs(ringArea(r)) })).filter((it) => it.a > 1e-12);
+  items.sort((p, q) => q.a - p.a);
+  items.forEach((it, i) => {
+    it.parent = -1;
+    for (let j = i - 1; j >= 0; j--) {
+      if (items[j].a <= it.a) continue;
+      let inside = 0;
+      for (const p of it.r) if (pip(p[0], p[1], items[j].r)) inside++;
+      if (inside > it.r.length * 0.5) {
+        it.parent = j;
+        break;
+      }
+    }
+    it.depth = it.parent < 0 ? 0 : items[it.parent].depth + 1;
+    const ccw = ringArea(it.r) > 0;
+    if (it.depth % 2 === 0 !== ccw) it.r = it.r.slice().reverse();
+  });
+  const groups = [];
+  const gi = /* @__PURE__ */ new Map();
+  items.forEach((it, i) => {
+    if (it.depth % 2 === 0) {
+      const g = { outer: it.r, holes: [] };
+      gi.set(i, g);
+      groups.push(g);
+    }
+  });
+  items.forEach((it, i) => {
+    if (it.depth % 2 === 1 && gi.has(it.parent)) gi.get(it.parent).holes.push(it.r);
+  });
+  return groups;
+}
+var flattenGroups = (groups) => groups.flatMap((g) => [g.outer, ...g.holes]);
+function treatRing(ring, o) {
+  const n = ring.length;
+  if (n < 3) return ring;
+  const len = [], dir = [];
+  for (let i = 0; i < n; i++) {
+    const p = ring[i], q = ring[(i + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1], l = Math.hypot(dx, dy) || 1e-12;
+    len.push(l);
+    dir.push([dx / l, dy / l]);
+  }
+  const turn = [], isC = [], t = [];
+  const minT = o.minTurn * Math.PI / 180, maxT = 175 * Math.PI / 180;
+  for (let i = 0; i < n; i++) {
+    const a = dir[(i + n - 1) % n], b = dir[i];
+    turn.push(Math.atan2(a[0] * b[1] - a[1] * b[0], a[0] * b[0] + a[1] * b[1]));
+    const th = Math.abs(turn[i]);
+    isC.push(th >= minT && th <= maxT && (o.concave || turn[i] > 0) && !(o.skip && o.skip(ring[i])));
+    t.push(isC[i] ? o.kind === "fillet" ? o.size * Math.tan(th / 2) : o.size : 0);
+  }
+  const tf = t.slice();
+  for (let i = 0; i < n; i++) {
+    if (!isC[i]) continue;
+    const pe = (i + n - 1) % n, po = pe, no = (i + 1) % n;
+    const sharePrev = isC[po] ? len[pe] * t[i] / (t[i] + t[po]) : 0.98 * len[pe];
+    const shareNext = isC[no] ? len[i] * t[i] / (t[i] + t[no]) : 0.98 * len[i];
+    tf[i] = Math.min(t[i], sharePrev, shareNext);
+  }
+  const out = [], step = o.step * Math.PI / 180;
+  for (let i = 0; i < n; i++) {
+    if (!isC[i] || tf[i] < 1e-9) {
+      out.push(ring[i]);
+      continue;
+    }
+    const a = dir[(i + n - 1) % n], b = dir[i], P = ring[i], d = tf[i];
+    const A = [P[0] - a[0] * d, P[1] - a[1] * d], B = [P[0] + b[0] * d, P[1] + b[1] * d];
+    if (o.kind === "chamfer") {
+      out.push(A, B);
+      continue;
+    }
+    const th = turn[i], r = d / Math.tan(Math.abs(th) / 2), sg = th > 0 ? 1 : -1;
+    const C = [A[0] + sg * -a[1] * r, A[1] + sg * a[0] * r], a0 = Math.atan2(A[1] - C[1], A[0] - C[0]);
+    const N = Math.max(2, Math.ceil(Math.abs(th) / step));
+    out.push(A);
+    for (let k = 1; k < N; k++) {
+      const ang = a0 + th * k / N;
+      out.push([C[0] + r * Math.cos(ang), C[1] + r * Math.sin(ang)]);
+    }
+    out.push(B);
+  }
+  return out;
+}
+function treatCorners(groups, opts) {
+  const o = { minTurn: 20, step: 7.5, concave: true, ...opts };
+  if (!(o.size > 0) || o.kind !== "chamfer" && o.kind !== "fillet") return groups;
+  return groups.map((g) => ({ outer: treatRing(g.outer, o), holes: g.holes.map((h) => treatRing(h, o)) }));
+}
+var MITER_MAX = 8;
+function miterVectors(ring) {
+  const n = ring.length, m = [];
+  for (let i = 0; i < n; i++) {
+    const p0 = ring[(i + n - 1) % n], p1 = ring[i], p2 = ring[(i + 1) % n];
+    let ax = p1[0] - p0[0], ay = p1[1] - p0[1], bx = p2[0] - p1[0], by = p2[1] - p1[1];
+    const la = Math.hypot(ax, ay) || 1, lb = Math.hypot(bx, by) || 1;
+    ax /= la;
+    ay /= la;
+    bx /= lb;
+    by /= lb;
+    const n1x = -ay, n1y = ax, n2x = -by, n2y = bx;
+    let mx = n1x + n2x, my = n1y + n2y;
+    const den = 1 + n1x * n2x + n1y * n2y;
+    if (den < 1e-6) {
+      m.push([n1x, n1y]);
+      continue;
+    }
+    mx /= den;
+    my /= den;
+    const l = Math.hypot(mx, my);
+    if (l > MITER_MAX) {
+      mx *= MITER_MAX / l;
+      my *= MITER_MAX / l;
+    }
+    m.push([mx, my]);
+  }
+  return m;
+}
+function capLayers(H, { kind, size, top, bottom, steps = 10 }) {
+  let sB = bottom ? size : 0, sT = top ? size : 0;
+  const lim = H * 0.98;
+  if (sB + sT > lim) {
+    const f = lim / (sB + sT);
+    sB *= f;
+    sT *= f;
+  }
+  const L = [];
+  const push = (z, d) => {
+    const q = L[L.length - 1];
+    if (!q || Math.abs(q.z - z) > 1e-9 || Math.abs(q.d - d) > 1e-9) L.push({ z, d });
+  };
+  if (sB > 0) {
+    if (kind === "chamfer") {
+      push(0, sB);
+      push(sB, 0);
+    } else for (let j = 0; j <= steps; j++) {
+      const phi = Math.PI / 2 - j * Math.PI / 2 / steps;
+      push(sB - sB * Math.sin(phi), sB * (1 - Math.cos(phi)));
+    }
+  } else push(0, 0);
+  if (sT > 0) {
+    if (kind === "chamfer") {
+      push(H - sT, 0);
+      push(H, sT);
+    } else for (let j = 0; j <= steps; j++) {
+      const phi = j * Math.PI / 2 / steps;
+      push(H - sT + sT * Math.sin(phi), sT * (1 - Math.cos(phi)));
+    }
+  } else push(H, 0);
+  return L;
+}
+function layeredSolid(groups, layers) {
+  const pos = [], tri = [], nL = layers.length;
+  for (const g of groups) {
+    const rings = [g.outer, ...g.holes], mv = rings.map(miterVectors), base2 = [];
+    for (let l = 0; l < nL; l++) {
+      base2.push([]);
+      rings.forEach((r, ri) => {
+        base2[l].push(pos.length / 3);
+        for (let i = 0; i < r.length; i++) pos.push(r[i][0] + mv[ri][i][0] * layers[l].d, r[i][1] + mv[ri][i][1] * layers[l].d, layers[l].z);
+      });
+    }
+    for (let l = 0; l + 1 < nL; l++) rings.forEach((r, ri) => {
+      const n = r.length;
+      for (let i = 0; i < n; i++) {
+        const a = base2[l][ri] + i, b = base2[l][ri] + (i + 1) % n, c = base2[l + 1][ri] + (i + 1) % n, d = base2[l + 1][ri] + i;
+        tri.push(a, b, c, a, c, d);
+      }
+    });
+    for (const [l, up] of [[0, false], [nL - 1, true]]) {
+      const pts = rings.map((r, ri) => r.map((_, i) => new Vector2(pos[(base2[l][ri] + i) * 3], pos[(base2[l][ri] + i) * 3 + 1])));
+      const ids = rings.flatMap((r, ri) => r.map((_, i) => base2[l][ri] + i));
+      const faces = ShapeUtils.triangulateShape(pts[0].slice(), pts.slice(1).map((h) => h.slice()));
+      const all = pts.flat();
+      for (const [a, b, c] of faces) {
+        const cr = (all[b].x - all[a].x) * (all[c].y - all[a].y) - (all[b].y - all[a].y) * (all[c].x - all[a].x);
+        if (Math.abs(cr) < 1e-18) continue;
+        if (cr > 0 === up) tri.push(ids[a], ids[b], ids[c]);
+        else tri.push(ids[a], ids[c], ids[b]);
+      }
+    }
+  }
+  return weld(pos, tri);
+}
+function weld(pos, tri) {
+  let mn = Infinity, mx = -Infinity;
+  for (const v of pos) {
+    if (v < mn) mn = v;
+    if (v > mx) mx = v;
+  }
+  const q = Math.max(1e-7, (mx - mn) * 1e-9), map = /* @__PURE__ */ new Map(), remap = new Int32Array(pos.length / 3), outPos = [];
+  for (let i = 0; i < pos.length / 3; i++) {
+    const key = Math.round(pos[i * 3] / q) + "," + Math.round(pos[i * 3 + 1] / q) + "," + Math.round(pos[i * 3 + 2] / q);
+    let id = map.get(key);
+    if (id === void 0) {
+      id = outPos.length / 3;
+      map.set(key, id);
+      outPos.push(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]);
+    }
+    remap[i] = id;
+  }
+  const outTri = [];
+  for (let i = 0; i < tri.length; i += 3) {
+    const a = remap[tri[i]], b = remap[tri[i + 1]], c = remap[tri[i + 2]];
+    if (a !== b && b !== c && a !== c) outTri.push(a, b, c);
+  }
+  return { positions: new Float32Array(outPos), indices: new Uint32Array(outTri) };
+}
+function offsetIsValid(M, groups, d) {
+  if (!(d > 0)) return true;
+  let mine = 0;
+  for (const g of groups) for (const r of [g.outer, ...g.holes]) {
+    const mv = miterVectors(r);
+    mine += ringArea(r.map((p, i) => [p[0] + mv[i][0] * d, p[1] + mv[i][1] * d]));
+  }
+  const cs = new M.CrossSection(flattenGroups(groups), "Positive"), off = cs.offset(-d, "Miter", MITER_MAX);
+  const ref = off.area();
+  cs.delete();
+  off.delete();
+  return ref > 0 && Math.abs(mine - ref) <= 0.015 * Math.max(ref, 1e-9);
+}
+function manifoldFromMesh(M, positions, indices) {
+  const mesh = new M.Mesh({ numProp: 3, vertProperties: positions, triVerts: indices });
+  mesh.merge();
+  return new M.Manifold(mesh);
+}
+
+// src/step.js
+var fmt = (v) => {
+  let s = (Math.abs(v) < 5e-7 ? 0 : v).toFixed(6).replace(/0+$/, "");
+  if (s === "-0.") s = "0.";
+  return s.endsWith(".") ? s : s;
+};
+var esc = (s) => String(s).replace(/'/g, "''").replace(/[^\x20-\x7e]/g, "?");
+function meshToStep({ positions, indices, name = "part", rgb = null, system = "Drawing2Model", date = /* @__PURE__ */ new Date() }) {
+  const nV = positions.length / 3, nT = indices.length / 3;
+  const P = (i) => [positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]];
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < nV; i++) for (let k = 0; k < 3; k++) {
+    lo[k] = Math.min(lo[k], positions[i * 3 + k]);
+    hi[k] = Math.max(hi[k], positions[i * 3 + k]);
+  }
+  const diag = Math.hypot(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) || 1, planeTol = diag * 1e-6;
+  const nrm = new Float64Array(nT * 3), live = new Uint8Array(nT);
+  for (let t = 0; t < nT; t++) {
+    const a = P(indices[t * 3]), b = P(indices[t * 3 + 1]), c = P(indices[t * 3 + 2]), n = cross(sub(b, a), sub(c, a)), l = Math.hypot(...n);
+    if (l > 1e-14 * diag * diag) {
+      nrm.set([n[0] / l, n[1] / l, n[2] / l], t * 3);
+      live[t] = 1;
+    }
+  }
+  const NV = nV + 1, edgeTri = /* @__PURE__ */ new Map();
+  for (let t = 0; t < nT; t++) if (live[t]) for (let k = 0; k < 3; k++) edgeTri.set(indices[t * 3 + k] * NV + indices[t * 3 + (k + 1) % 3], t);
+  const grp = new Int32Array(nT).fill(-1), groups = [];
+  for (let s = 0; s < nT; s++) {
+    if (!live[s] || grp[s] >= 0) continue;
+    const gid = groups.length, n0 = [nrm[s * 3], nrm[s * 3 + 1], nrm[s * 3 + 2]], p0 = P(indices[s * 3]), tris = [s];
+    grp[s] = gid;
+    for (let q = 0; q < tris.length; q++) {
+      const t = tris[q];
+      for (let k = 0; k < 3; k++) {
+        const a = indices[t * 3 + k], b = indices[t * 3 + (k + 1) % 3], o = edgeTri.get(b * NV + a);
+        if (o === void 0 || grp[o] >= 0) continue;
+        if (n0[0] * nrm[o * 3] + n0[1] * nrm[o * 3 + 1] + n0[2] * nrm[o * 3 + 2] < 1 - 1e-8) continue;
+        let ok = true;
+        for (let j = 0; j < 3 && ok; j++) ok = Math.abs(dot(n0, sub(P(indices[o * 3 + j]), p0))) <= planeTol;
+        if (ok) {
+          grp[o] = gid;
+          tris.push(o);
+        }
+      }
+    }
+    groups.push({ n: n0, tris });
+  }
+  const faces = [];
+  for (let gi = 0; gi < groups.length; gi++) {
+    const { n, tris } = groups[gi], out = /* @__PURE__ */ new Map();
+    for (const t of tris) for (let k = 0; k < 3; k++) {
+      const a = indices[t * 3 + k], b = indices[t * 3 + (k + 1) % 3], o = edgeTri.get(b * NV + a);
+      if (o !== void 0 && grp[o] === gi) continue;
+      let l = out.get(a);
+      if (!l) out.set(a, l = []);
+      l.push(b);
+    }
+    const loops = [];
+    for (const [a0, l0] of out) while (l0.length) {
+      const loop = [a0];
+      let prev = a0, cur = l0.pop(), guard = 0;
+      while (cur !== a0 && guard++ < 1e7) {
+        loop.push(cur);
+        const cand = out.get(cur);
+        if (!cand || !cand.length) break;
+        let pick = 0;
+        if (cand.length > 1) {
+          const din = sub(P(cur), P(prev));
+          let best = -Infinity;
+          cand.forEach((c, i) => {
+            const d2 = sub(P(c), P(cur)), ang = Math.atan2(dot(n, cross(din, d2)), dot(din, d2));
+            if (ang > best) {
+              best = ang;
+              pick = i;
+            }
+          });
+        }
+        const nxt = cand.splice(pick, 1)[0];
+        prev = cur;
+        cur = nxt;
+      }
+      if (cur === a0 && loop.length >= 3) loops.push(loop);
+    }
+    const ax = Math.abs(n[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0], u = cross(n, ax), ul = Math.hypot(...u), U = u.map((v) => v / ul), W = cross(n, U);
+    const to2 = (i) => {
+      const p = P(i);
+      return [dot(p, U), dot(p, W)];
+    };
+    const info = loops.map((loop) => {
+      const pts = loop.map(to2);
+      let a = 0;
+      for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) a += pts[j][0] * pts[i][1] - pts[i][0] * pts[j][1];
+      return { loop, pts, area: a / 2 };
+    });
+    const outers = info.filter((x) => x.area > 0), holes = info.filter((x) => x.area < 0);
+    const inside = (pt, poly) => {
+      let c = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const [xi, yi] = poly[i], [xj, yj] = poly[j];
+        if (yi > pt[1] !== yj > pt[1] && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi) c = !c;
+      }
+      return c;
+    };
+    const f = outers.map((o) => ({ outer: o.loop, holes: [], a: o.area, pts: o.pts, n }));
+    for (const h of holes) {
+      let best = null;
+      for (const o of f) if (inside(h.pts[0], o.pts) && (!best || o.a < best.a)) best = o;
+      if (best) best.holes.push(h.loop);
+    }
+    faces.push(...f);
+  }
+  const L = [];
+  let id = 0;
+  const add = (s) => {
+    L.push(`#${++id}=${s};`);
+    return id;
+  };
+  const pm = new Int32Array(nV).fill(0), ref = (i) => pm[i] || (pm[i] = add(`CARTESIAN_POINT('',(${P(i).map(fmt).join(",")}))`));
+  const nm = esc(name);
+  const dir = (x, y, z) => add(`DIRECTION('',(${x},${y},${z}))`);
+  const app = add(`APPLICATION_CONTEXT('core data for automotive mechanical design processes')`);
+  add(`APPLICATION_PROTOCOL_DEFINITION('international standard','automotive_design',2000,#${app})`);
+  const pdc = add(`PRODUCT_DEFINITION_CONTEXT('part definition',#${app},'design')`);
+  const pc = add(`PRODUCT_CONTEXT('',#${app},'mechanical')`);
+  const prod = add(`PRODUCT('${nm}','${nm}','',(#${pc}))`);
+  const pdf = add(`PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE('','',#${prod},.NOT_KNOWN.)`);
+  const pd = add(`PRODUCT_DEFINITION('design','',#${pdf},#${pdc})`);
+  const pds = add(`PRODUCT_DEFINITION_SHAPE('','',#${pd})`);
+  const orig = add(`CARTESIAN_POINT('',(0.,0.,0.))`), dz = dir("0.", "0.", "1."), dx = dir("1.", "0.", "0.");
+  const axis = add(`AXIS2_PLACEMENT_3D('',#${orig},#${dz},#${dx})`);
+  const lenU = add(`(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.))`);
+  const angU = add(`(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.))`);
+  const solU = add(`(NAMED_UNIT(*) SI_UNIT($,.STERADIAN.) SOLID_ANGLE_UNIT())`);
+  const unc = add(`UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(1.E-06),#${lenU},'distance_accuracy_value','confusion accuracy')`);
+  const ctx2 = add(`(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#${unc})) GLOBAL_UNIT_ASSIGNED_CONTEXT((#${lenU},#${angU},#${solU})) REPRESENTATION_CONTEXT('${nm}','3D'))`);
+  const vm = new Int32Array(nV).fill(0), vref = (i) => vm[i] || (vm[i] = add(`VERTEX_POINT('',#${ref(i)})`));
+  const em = /* @__PURE__ */ new Map();
+  const edgeRef = (a, b) => {
+    const lo2 = Math.min(a, b), hi2 = Math.max(a, b), key = lo2 * NV + hi2;
+    let e = em.get(key);
+    if (!e) {
+      const pa = P(lo2), d2 = sub(P(hi2), pa), l = Math.hypot(...d2) || 1e-12;
+      const dr = add(`DIRECTION('',(${d2.map((v) => fmt(v / l)).join(",")}))`), vec = add(`VECTOR('',#${dr},${fmt(l)})`), ln = add(`LINE('',#${ref(lo2)},#${vec})`);
+      e = add(`EDGE_CURVE('',#${vref(lo2)},#${vref(hi2)},#${ln},.T.)`);
+      em.set(key, e);
+    }
+    return [e, a === lo2];
+  };
+  const fids = [];
+  for (const f of faces) {
+    const bounds = [f.outer, ...f.holes].map((loop, k) => {
+      const oes = loop.map((v, i) => {
+        const [e, fwd] = edgeRef(v, loop[(i + 1) % loop.length]);
+        return add(`ORIENTED_EDGE('',*,*,#${e},${fwd ? ".T." : ".F."})`);
+      });
+      const el = add(`EDGE_LOOP('',(${oes.map((o) => "#" + o).join(",")}))`);
+      return add(k === 0 ? `FACE_OUTER_BOUND('',#${el},.T.)` : `FACE_BOUND('',#${el},.T.)`);
+    });
+    const n = f.n, ax = Math.abs(n[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0], rd = cross(ax, n), rl = Math.hypot(...rd);
+    const nd = dir(...n.map(fmt)), rdd = dir(...rd.map((v) => fmt(v / rl)));
+    const pl = add(`PLANE('',#${add(`AXIS2_PLACEMENT_3D('',#${ref(f.outer[0])},#${nd},#${rdd})`)})`);
+    fids.push(add(`ADVANCED_FACE('',(${bounds.map((b) => "#" + b).join(",")}),#${pl},.T.)`));
+  }
+  const shell = add(`CLOSED_SHELL('',(${fids.map((f) => "#" + f).join(",")}))`);
+  const brep = add(`MANIFOLD_SOLID_BREP('${nm}',#${shell})`);
+  const rep = add(`ADVANCED_BREP_SHAPE_REPRESENTATION('${nm}',(#${axis},#${brep}),#${ctx2})`);
+  add(`SHAPE_DEFINITION_REPRESENTATION(#${pds},#${rep})`);
+  if (rgb) {
+    const c = add(`COLOUR_RGB('',${rgb.map((v) => fmt(Math.min(1, Math.max(0, v)))).join(",")})`);
+    const fc = add(`FILL_AREA_STYLE_COLOUR('',#${c})`), fa = add(`FILL_AREA_STYLE('',(#${fc}))`), sf = add(`SURFACE_STYLE_FILL_AREA(#${fa})`);
+    const ss = add(`SURFACE_SIDE_STYLE('',(#${sf}))`), su = add(`SURFACE_STYLE_USAGE(.BOTH.,#${ss})`), ps = add(`PRESENTATION_STYLE_ASSIGNMENT((#${su}))`);
+    const si = add(`STYLED_ITEM('color',(#${ps}),#${brep})`);
+    add(`MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION('',(#${si}),#${ctx2})`);
+  }
+  const d = date.toISOString().replace(/\.\d+Z$/, "");
+  return `ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('${nm} - faceted solid from Drawing2Model'),'2;1');
+FILE_NAME('${nm}.step','${d}',(''),(''),'Drawing2Model','${esc(system)}','');
+FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }'));
+ENDSEC;
+DATA;
+${L.join("\n")}
+ENDSEC;
+END-ISO-10303-21;
+`;
+}
+
+// src/app.js
+var CDN = {
+  pdfjs: "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/legacy/build/pdf.mjs",
+  pdfWorker: "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/legacy/build/pdf.worker.mjs",
+  manifold: "https://cdn.jsdelivr.net/npm/manifold-3d@3.5.5/manifold.js",
+  libredwg: "https://cdn.jsdelivr.net/npm/@mlightcad/libredwg-web@0.9.0/dist/libredwg-web.js",
+  libredwgWasmDir: "https://cdn.jsdelivr.net/npm/@mlightcad/libredwg-web@0.9.0/wasm"
+};
+var $ = (id) => document.getElementById(id);
+function status(msg, kind = "") {
+  const el = $("status");
+  el.textContent = msg;
+  el.title = msg;
+  el.className = kind;
+}
+var nextFrame = () => new Promise((r) => setTimeout(r, 0));
+var _manifold = null;
+var _pdfjs = null;
+var _dwg = null;
+var LIBS = globalThis.__D2M_LIBS || null;
+function getManifold() {
+  if (!_manifold) _manifold = (LIBS ? LIBS.manifold() : import(CDN.manifold)).then(async (m) => {
+    const w = await m.default(LIBS ? { wasmBinary: LIBS.manifoldWasm } : void 0);
+    w.setup();
+    return w;
+  }).catch((e) => {
+    _manifold = null;
+    throw e;
+  });
+  return _manifold;
+}
+function getPdfjs() {
+  if (!_pdfjs) _pdfjs = (LIBS ? LIBS.pdfjs() : import(CDN.pdfjs)).then((p) => {
+    p.GlobalWorkerOptions.workerSrc = LIBS ? LIBS.pdfWorkerUrl() : CDN.pdfWorker;
+    return p;
+  }).catch((e) => {
+    _pdfjs = null;
+    throw e;
+  });
+  return _pdfjs;
+}
+function getLibreDwg() {
+  if (!_dwg) _dwg = (LIBS ? LIBS.libredwg() : import(CDN.libredwg)).then(async (m) => ({ m, lib: await m.LibreDwg.create(LIBS ? LIBS.dwgWasmPath() : CDN.libredwgWasmDir) })).catch((e) => {
+    _dwg = null;
+    throw e;
+  });
+  return _dwg;
+}
+getManifold().then(() => {
+  $("kernel").textContent = "Geometry kernel: ready (manifold-3d)" + (LIBS ? " \xB7 offline edition" : "");
+}).catch((e) => {
+  $("kernel").textContent = "Geometry kernel failed to load: " + e.message + (LIBS ? "" : " \u2013 no internet? Use the offline edition of this tool.");
+});
+var S = {
+  fileName: "",
+  kind: "",
+  fileBuf: null,
+  pdf: null,
+  ents: [],
+  // {pts:[[x,y]..], closed, layer, dashed, bb:[x0,y0,x1,y1]}
+  layers: /* @__PURE__ */ new Map(),
+  // name -> {count, on}
+  bb: null,
+  mode: "extrude",
+  crop: null,
+  // {x0,y0,x1,y1}
+  views: { front: null, top: null, side: null },
+  regions: {},
+  // key -> region
+  geomVer: 0,
+  tool: null,
+  // 'crop' | 'front' | 'top' | 'side' | 'calib'
+  calib: [],
+  geo: null
+};
+var modelRGB = "25,195,195";
+var TAU = Math.PI * 2;
+var DEG = Math.PI / 180;
+var SEG_ANG = Math.PI / 36;
+var ID = [1, 0, 0, 1, 0, 0];
+var mul = (m, n) => [
+  m[0] * n[0] + m[2] * n[1],
+  m[1] * n[0] + m[3] * n[1],
+  m[0] * n[2] + m[2] * n[3],
+  m[1] * n[2] + m[3] * n[3],
+  m[0] * n[4] + m[2] * n[5] + m[4],
+  m[1] * n[4] + m[3] * n[5] + m[5]
+];
+var apply = (m, p) => [m[0] * p[0] + m[2] * p[1] + m[4], m[1] * p[0] + m[3] * p[1] + m[5]];
+var trans = (x, y) => [1, 0, 0, 1, x, y];
+var rot = (a) => [Math.cos(a), Math.sin(a), -Math.sin(a), Math.cos(a), 0, 0];
+var scl = (sx, sy) => [sx, 0, 0, sy, 0, 0];
+function arcPoints(cx, cy, r, a0, sweep) {
+  const n = Math.max(2, Math.ceil(Math.abs(sweep) / SEG_ANG)), out = [];
+  for (let i = 0; i <= n; i++) {
+    const a = a0 + sweep * i / n;
+    out.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+  }
+  return out;
+}
+function bulgePoints(p1, p2, b) {
+  const dx = p2[0] - p1[0], dy = p2[1] - p1[1], c = Math.hypot(dx, dy);
+  if (Math.abs(b) < 1e-9 || c < 1e-12) return [p2];
+  const th = 4 * Math.atan(b), r = c / (2 * Math.sin(th / 2)), h = r * Math.cos(th / 2);
+  const cx = (p1[0] + p2[0]) / 2 - dy / c * h, cy = (p1[1] + p2[1]) / 2 + dx / c * h;
+  const pts = arcPoints(cx, cy, Math.abs(r), Math.atan2(p1[1] - cy, p1[0] - cx), th);
+  pts.shift();
+  pts[pts.length - 1] = [p2[0], p2[1]];
+  return pts;
+}
+function nurbs(ctrl, knots, deg, weights) {
+  const n = ctrl.length;
+  if (!knots || knots.length !== n + deg + 1 || n <= deg) return ctrl.slice();
+  const w = weights && weights.length === n ? weights : null;
+  const t0 = knots[deg], t1 = knots[n], N = Math.min(400, Math.max(24, n * 10)), out = [];
+  for (let s = 0; s <= N; s++) {
+    const t = t0 + (t1 - t0) * s / N;
+    let k = deg;
+    while (k < n - 1 && t >= knots[k + 1]) k++;
+    const d = [];
+    for (let j = 0; j <= deg; j++) {
+      const P = ctrl[j + k - deg], ww = w ? w[j + k - deg] : 1;
+      d.push([P[0] * ww, P[1] * ww, ww]);
+    }
+    for (let r = 1; r <= deg; r++) for (let j = deg; j >= r; j--) {
+      const i = j + k - deg, den = knots[i + deg - r + 1] - knots[i], a = den === 0 ? 0 : (t - knots[i]) / den;
+      d[j] = [(1 - a) * d[j - 1][0] + a * d[j][0], (1 - a) * d[j - 1][1] + a * d[j][1], (1 - a) * d[j - 1][2] + a * d[j][2]];
+    }
+    out.push([d[deg][0] / d[deg][2], d[deg][1] / d[deg][2]]);
+  }
+  return out;
+}
+function pip2(px, py, poly) {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+    if (yi > py !== yj > py && px < (xj - xi) * (py - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+function polyArea(p) {
+  let a = 0;
+  for (let i = 0, j = p.length - 1; i < p.length; j = i++) a += p[j][0] * p[i][1] - p[i][0] * p[j][1];
+  return a / 2;
+}
+function bboxOf(pts, bb = [Infinity, Infinity, -Infinity, -Infinity]) {
+  for (const p of pts) {
+    if (p[0] < bb[0]) bb[0] = p[0];
+    if (p[1] < bb[1]) bb[1] = p[1];
+    if (p[0] > bb[2]) bb[2] = p[0];
+    if (p[1] > bb[3]) bb[3] = p[1];
+  }
+  return bb;
+}
+var inBB = (bb, x, y) => x >= bb[0] && x <= bb[2] && y >= bb[1] && y <= bb[3];
+function geomOf(e) {
+  let res = [];
+  switch (e.type) {
+    case "LINE":
+      res = [{ pts: [e.a, e.b], closed: false }];
+      break;
+    case "CIRCLE":
+      if (e.r > 0) {
+        const p = arcPoints(e.c[0], e.c[1], e.r, 0, TAU);
+        p.pop();
+        res = [{ pts: p, closed: true }];
+      }
+      break;
+    case "ARC":
+      if (e.r > 0) {
+        let sw = e.a1 - e.a0;
+        while (sw <= 1e-12) sw += TAU;
+        while (sw > TAU + 1e-12) sw -= TAU;
+        res = [{ pts: arcPoints(e.c[0], e.c[1], e.r, e.a0, sw), closed: false }];
+      }
+      break;
+    case "ELLIPSE": {
+      let sw = e.t1 - e.t0;
+      while (sw <= 1e-12) sw += TAU;
+      while (sw > TAU + 1e-12) sw -= TAU;
+      const full = Math.abs(sw - TAU) < 1e-6, n = Math.max(8, Math.ceil(sw / SEG_ANG)), M = e.maj, m = [-M[1] * e.ratio, M[0] * e.ratio], p = [];
+      for (let i = 0; i <= n; i++) {
+        const t = e.t0 + sw * i / n;
+        p.push([e.c[0] + M[0] * Math.cos(t) + m[0] * Math.sin(t), e.c[1] + M[1] * Math.cos(t) + m[1] * Math.sin(t)]);
+      }
+      if (full) p.pop();
+      res = [{ pts: p, closed: full }];
+      break;
+    }
+    case "PLINE": {
+      const v = e.verts, n = v.length;
+      if (n < 2) break;
+      const p = [[v[0].x, v[0].y]], segs = e.closed ? n : n - 1;
+      for (let i = 0; i < segs; i++) {
+        const a = v[i], b = v[(i + 1) % n];
+        p.push(...bulgePoints([a.x, a.y], [b.x, b.y], a.bulge || 0));
+      }
+      if (e.closed) p.pop();
+      res = [{ pts: p, closed: e.closed }];
+      break;
+    }
+    case "SPLINE": {
+      let p = null;
+      if (e.ctrl && e.ctrl.length > e.deg) p = nurbs(e.ctrl, e.knots, e.deg, e.weights);
+      else if (e.fit && e.fit.length >= 2) p = e.fit;
+      if (p) res = [{ pts: p, closed: false }];
+      break;
+    }
+  }
+  if (e.flip) for (const g of res) g.pts = g.pts.map((q) => [-q[0], q[1]]);
+  return res;
+}
+var isDashedLt = (lt) => !(lt === "" || lt === "CONTINUOUS" || lt === "BYLAYER" || lt === "BYBLOCK");
+function emit(e, xf, inh, model, out, depth) {
+  const layer = e.layer === "0" && inh.layer ? inh.layer : e.layer || "0";
+  let lt = String(e.lt || "").toUpperCase();
+  if (!lt || lt === "BYLAYER") lt = String(model.layerLt.get(layer) || "CONTINUOUS").toUpperCase();
+  else if (lt === "BYBLOCK") lt = inh.lt || "CONTINUOUS";
+  if (e.type === "INSERT") {
+    if (depth > 10) return;
+    const blk = model.blocks.get(e.name) || model.blocks.get(String(e.name).toUpperCase());
+    if (!blk) return;
+    let base2 = xf;
+    if (e.flip) base2 = mul(base2, scl(-1, 1));
+    for (let r = 0; r < Math.max(1, e.rows); r++) for (let c = 0; c < Math.max(1, e.cols); c++) {
+      const m = mul(mul(mul(mul(mul(base2, trans(e.p[0], e.p[1])), rot(e.rot)), trans(c * e.cs, r * e.rs)), scl(e.sx, e.sy)), trans(-blk.base[0], -blk.base[1]));
+      for (const ch of blk.ents) emit(ch, m, { layer, lt }, model, out, depth + 1);
+    }
+    return;
+  }
+  for (const g of geomOf(e)) out.push({ pts: g.pts.map((p) => apply(xf, p)), closed: g.closed, layer, dashed: isDashedLt(lt) });
+}
+function explodeModel(model) {
+  const out = [], ms = model.ents.filter((e) => !e.paper);
+  for (const e of ms.length ? ms : model.ents) emit(e, ID, { layer: null, lt: null }, model, out, 0);
+  return out;
+}
+var INSUNITS_MM = { 0: 1, 1: 25.4, 2: 304.8, 3: 1609344, 4: 1, 5: 10, 6: 1e3, 7: 1e6, 8: 254e-7, 9: 0.0254, 10: 914.4, 13: 1e-3, 14: 100 };
+function parseDXF(text) {
+  const L = text.split(/\r\n|\r|\n/), recs = [];
+  let cur = null;
+  for (let i = 0; i + 1 < L.length; i += 2) {
+    const code = parseInt(L[i], 10);
+    if (isNaN(code)) continue;
+    const val = L[i + 1].trim();
+    if (code === 0) {
+      cur = { type: val, p: [] };
+      recs.push(cur);
+    } else if (cur) cur.p.push([code, val]);
+  }
+  const g = (r, c, d) => {
+    for (const [k, v] of r.p) if (k === c) return v;
+    return d;
+  };
+  const gn = (r, c, d = 0) => {
+    const v = g(r, c);
+    return v === void 0 ? d : parseFloat(v);
+  };
+  const ga = (r, c) => r.p.filter((x) => x[0] === c).map((x) => parseFloat(x[1]));
+  const pairs = (r, cx, cy) => {
+    const o = [];
+    for (const [k, v] of r.p) {
+      if (k === cx) o.push([parseFloat(v), 0]);
+      else if (k === cy && o.length) o[o.length - 1][1] = parseFloat(v);
+    }
+    return o;
+  };
+  const model = { ents: [], blocks: /* @__PURE__ */ new Map(), layerLt: /* @__PURE__ */ new Map(), layerOff: /* @__PURE__ */ new Set(), insunits: 0 };
+  function ent(r) {
+    const base2 = { layer: g(r, 8, "0"), lt: g(r, 6, ""), paper: gn(r, 67) === 1 }, flip = gn(r, 230, 1) < 0;
+    switch (r.type) {
+      case "LINE":
+        return { ...base2, type: "LINE", a: [gn(r, 10), gn(r, 20)], b: [gn(r, 11), gn(r, 21)] };
+      case "CIRCLE":
+        return { ...base2, type: "CIRCLE", c: [gn(r, 10), gn(r, 20)], r: gn(r, 40), flip };
+      case "ARC":
+        return { ...base2, type: "ARC", c: [gn(r, 10), gn(r, 20)], r: gn(r, 40), a0: gn(r, 50) * DEG, a1: gn(r, 51) * DEG, flip };
+      case "ELLIPSE":
+        return { ...base2, type: "ELLIPSE", c: [gn(r, 10), gn(r, 20)], maj: [gn(r, 11), gn(r, 21)], ratio: gn(r, 40, 1), t0: gn(r, 41, 0), t1: gn(r, 42, TAU) };
+      case "LWPOLYLINE": {
+        const verts = [];
+        for (const [k, v] of r.p) {
+          if (k === 10) verts.push({ x: parseFloat(v), y: 0, bulge: 0 });
+          else if (verts.length && k === 20) verts[verts.length - 1].y = parseFloat(v);
+          else if (verts.length && k === 42) verts[verts.length - 1].bulge = parseFloat(v);
+        }
+        return { ...base2, type: "PLINE", verts, closed: !!(gn(r, 70) & 1), flip };
+      }
+      case "SPLINE":
+        return { ...base2, type: "SPLINE", deg: gn(r, 71, 3), knots: ga(r, 40), weights: ga(r, 41), ctrl: pairs(r, 10, 20), fit: pairs(r, 11, 21) };
+      case "INSERT":
+        return {
+          ...base2,
+          type: "INSERT",
+          name: g(r, 2),
+          p: [gn(r, 10), gn(r, 20)],
+          sx: gn(r, 41, 1),
+          sy: gn(r, 42, 1),
+          rot: gn(r, 50) * DEG,
+          cols: gn(r, 70, 1) || 1,
+          rows: gn(r, 71, 1) || 1,
+          cs: gn(r, 44),
+          rs: gn(r, 45),
+          flip
+        };
+    }
+    return null;
+  }
+  let sec = null, blk = null;
+  for (let i = 0; i < recs.length; i++) {
+    const r = recs[i], t = r.type;
+    if (t === "SECTION") {
+      sec = g(r, 2);
+      if (sec === "HEADER") {
+        for (let j = 0; j + 1 < r.p.length; j++) if (r.p[j][0] === 9 && r.p[j][1] === "$INSUNITS") model.insunits = parseInt(r.p[j + 1][1], 10);
+      }
+      continue;
+    }
+    if (t === "ENDSEC") {
+      sec = null;
+      continue;
+    }
+    if (sec === "TABLES") {
+      if (t === "LAYER") {
+        const name = g(r, 2);
+        if (name !== void 0) {
+          model.layerLt.set(name, g(r, 6, "CONTINUOUS"));
+          if (gn(r, 62, 7) < 0 || gn(r, 70) & 1) model.layerOff.add(name);
+        }
+      }
+      continue;
+    }
+    if (sec === "BLOCKS") {
+      if (t === "BLOCK") {
+        blk = { name: g(r, 2), base: [gn(r, 10), gn(r, 20)], ents: [] };
+        model.blocks.set(blk.name, blk);
+        continue;
+      }
+      if (t === "ENDBLK") {
+        blk = null;
+        continue;
+      }
+    }
+    if (sec === "ENTITIES" || sec === "BLOCKS" && blk) {
+      let e = null;
+      if (t === "POLYLINE") {
+        const verts = [];
+        let j = i + 1;
+        while (j < recs.length && recs[j].type === "VERTEX") {
+          const v = recs[j];
+          if (!(gn(v, 70) & 16)) verts.push({ x: gn(v, 10), y: gn(v, 20), bulge: gn(v, 42) });
+          j++;
+        }
+        if (j < recs.length && recs[j].type === "SEQEND") j++;
+        i = j - 1;
+        const fl = gn(r, 70);
+        if (!(fl & (16 | 64))) e = { layer: g(r, 8, "0"), lt: g(r, 6, ""), paper: gn(r, 67) === 1, type: "PLINE", verts, closed: !!(fl & 1), flip: gn(r, 230, 1) < 0 };
+      } else e = ent(r);
+      if (e) (blk ? blk.ents : model.ents).push(e);
+    }
+  }
+  return model;
+}
+function dwgToModel(db) {
+  const P = (p) => [p?.x || 0, p?.y || 0];
+  const conv = (e) => {
+    if (!e) return null;
+    const base2 = { layer: e.layer || "0", lt: e.lineType || "", paper: !!e.isInPaperSpace }, flip = (e.extrusionDirection?.z ?? 1) < 0;
+    switch (e.type) {
+      case "LINE":
+        return { ...base2, type: "LINE", a: P(e.startPoint), b: P(e.endPoint) };
+      case "CIRCLE":
+        return { ...base2, type: "CIRCLE", c: P(e.center), r: e.radius, flip };
+      case "ARC":
+        return { ...base2, type: "ARC", c: P(e.center), r: e.radius, a0: e.startAngle, a1: e.endAngle, flip };
+      case "ELLIPSE":
+        return { ...base2, type: "ELLIPSE", c: P(e.center), maj: P(e.majorAxisEndPoint), ratio: e.axisRatio || 1, t0: e.startAngle || 0, t1: e.endAngle ?? TAU };
+      case "LWPOLYLINE":
+        return { ...base2, type: "PLINE", verts: (e.vertices || []).map((v) => ({ x: v.x, y: v.y, bulge: v.bulge || 0 })), closed: !!(e.flag & 512), flip };
+      case "POLYLINE2D":
+        return { ...base2, type: "PLINE", verts: (e.vertices || []).filter((v) => !(v.flag & 16)).map((v) => ({ x: v.x, y: v.y, bulge: v.bulge || 0 })), closed: !!(e.flag & 1), flip };
+      case "POLYLINE3D":
+        return { ...base2, type: "PLINE", verts: (e.vertices || []).map((v) => ({ x: v.x, y: v.y, bulge: 0 })), closed: !!(e.flag & 1) };
+      case "SPLINE":
+        return { ...base2, type: "SPLINE", deg: e.degree || 3, knots: e.knots || [], weights: e.weights || [], ctrl: (e.controlPoints || []).map(P), fit: (e.fitPoints || []).map(P) };
+      case "INSERT":
+        return {
+          ...base2,
+          type: "INSERT",
+          name: e.name,
+          p: P(e.insertionPoint),
+          sx: e.xScale ?? 1,
+          sy: e.yScale ?? 1,
+          rot: e.rotation || 0,
+          cols: e.columnCount || 1,
+          rows: e.rowCount || 1,
+          cs: e.columnSpacing || 0,
+          rs: e.rowSpacing || 0,
+          flip
+        };
+    }
+    return null;
+  };
+  const model = { ents: [], blocks: /* @__PURE__ */ new Map(), layerLt: /* @__PURE__ */ new Map(), layerOff: /* @__PURE__ */ new Set(), insunits: db.header?.INSUNITS ?? db.header?.$INSUNITS ?? 0 };
+  for (const L of db.tables?.LAYER?.entries || []) {
+    model.layerLt.set(L.name, L.lineType || "CONTINUOUS");
+    if (L.off || L.frozen) model.layerOff.add(L.name);
+  }
+  for (const b of db.tables?.BLOCK_RECORD?.entries || []) {
+    if (!b.name || /^\*(model|paper)_space/i.test(b.name)) continue;
+    model.blocks.set(b.name, { base: P(b.basePoint), ents: (b.entities || []).map(conv).filter(Boolean) });
+  }
+  model.ents = (db.entities || []).map(conv).filter(Boolean);
+  return model;
+}
+async function readPdfPage(pdfjs, pdf, pageNo) {
+  const page = await pdf.getPage(pageNo), ops = await page.getOperatorList(), OPS = pdfjs.OPS;
+  const ocNames = {};
+  try {
+    const cfg = await pdf.getOptionalContentConfig();
+    for (const [id, grp] of cfg) ocNames[id] = grp.name;
+  } catch (_) {
+  }
+  const STROKE = /* @__PURE__ */ new Set([OPS.stroke, OPS.closeStroke, OPS.fillStroke, OPS.eoFillStroke, OPS.closeFillStroke, OPS.closeEOFillStroke]);
+  const FILL = /* @__PURE__ */ new Set([OPS.fill, OPS.eoFill, OPS.fillStroke, OPS.eoFillStroke, OPS.closeFillStroke, OPS.closeEOFillStroke]);
+  const colorStr = (a) => {
+    const v = a.length === 1 && typeof a[0] !== "number" ? a[0] : a;
+    if (typeof v === "string") return v;
+    if (v && v.length >= 3) return "#" + [v[0], v[1], v[2]].map((x) => Math.round(x <= 1 && !Number.isInteger(x) ? x * 255 : x).toString(16).padStart(2, "0")).join("");
+    return "#000000";
+  };
+  const ocName = (p) => {
+    if (!p) return null;
+    if (p.id) return ocNames[p.id] || String(p.id);
+    if (p.ids && p.ids.length) return ocNames[p.ids[0]] || String(p.ids[0]);
+    return null;
+  };
+  const out = [], stack = [], mc = [], fillOnlyLayers = /* @__PURE__ */ new Set();
+  let ctm = ID.slice(), st = { lw: 1, dash: false, col: "#000000", fcol: "#000000" };
+  const curOC = () => {
+    for (let i = mc.length - 1; i >= 0; i--) if (mc[i]) return mc[i];
+    return null;
+  };
+  function handlePath(args) {
+    const op = args[0], path = args[1] && args[1][0];
+    if (!path || !path.length) return;
+    const stroke = STROKE.has(op), fill = FILL.has(op);
+    if (!stroke && !fill) return;
+    const sc = Math.sqrt(Math.abs(ctm[0] * ctm[3] - ctm[1] * ctm[2]));
+    const oc = curOC();
+    let layer = stroke ? `Line ${(st.lw * sc).toFixed(2)}pt ${st.col}${st.dash ? " dashed" : ""}` : `Fill ${st.fcol}`;
+    if (oc) layer = stroke ? oc : `${oc} [fill]`;
+    if (!stroke) fillOnlyLayers.add(layer);
+    const P = (x, y) => [ctm[0] * x + ctm[2] * y + ctm[4], ctm[1] * x + ctm[3] * y + ctm[5]];
+    let i = 0, cx = 0, cy = 0, sx = 0, sy = 0, pts = null;
+    const flush = (closed) => {
+      if (pts && pts.length > 1) out.push({ pts, closed, layer, dashed: st.dash });
+      pts = null;
+    };
+    const ensure = () => {
+      if (!pts) pts = [P(cx, cy)];
+    };
+    while (i < path.length) {
+      const o = path[i++];
+      if (o === 0) {
+        flush(false);
+        cx = sx = path[i];
+        cy = sy = path[i + 1];
+        i += 2;
+        pts = [P(cx, cy)];
+      } else if (o === 1) {
+        ensure();
+        cx = path[i];
+        cy = path[i + 1];
+        i += 2;
+        pts.push(P(cx, cy));
+      } else if (o === 2 || o === 3) {
+        ensure();
+        let x1, y1, x2, y2, x3, y3;
+        if (o === 2) {
+          x1 = path[i];
+          y1 = path[i + 1];
+          x2 = path[i + 2];
+          y2 = path[i + 3];
+          x3 = path[i + 4];
+          y3 = path[i + 5];
+          i += 6;
+        } else {
+          const qx = path[i], qy = path[i + 1];
+          x3 = path[i + 2];
+          y3 = path[i + 3];
+          i += 4;
+          x1 = cx + 2 / 3 * (qx - cx);
+          y1 = cy + 2 / 3 * (qy - cy);
+          x2 = x3 + 2 / 3 * (qx - x3);
+          y2 = y3 + 2 / 3 * (qy - y3);
+        }
+        const n = 12;
+        for (let k = 1; k <= n; k++) {
+          const t = k / n, u = 1 - t;
+          pts.push(P(u * u * u * cx + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * x3, u * u * u * cy + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y3));
+        }
+        cx = x3;
+        cy = y3;
+      } else if (o === 4) {
+        flush(true);
+        cx = sx;
+        cy = sy;
+      } else break;
+    }
+    flush(false);
+  }
+  for (let i = 0; i < ops.fnArray.length; i++) {
+    const fn = ops.fnArray[i], a = ops.argsArray[i];
+    switch (fn) {
+      case OPS.save:
+        stack.push([ctm, { ...st }]);
+        break;
+      case OPS.restore:
+        if (stack.length) [ctm, st] = stack.pop();
+        break;
+      case OPS.transform:
+        ctm = mul(ctm, a);
+        break;
+      case OPS.paintFormXObjectBegin:
+        stack.push([ctm, { ...st }]);
+        if (a && a[0]) ctm = mul(ctm, Array.from(a[0]));
+        break;
+      case OPS.paintFormXObjectEnd:
+        if (stack.length) [ctm, st] = stack.pop();
+        break;
+      case OPS.setLineWidth:
+        st.lw = a[0];
+        break;
+      case OPS.setDash:
+        st.dash = !!(a && a[0] && a[0].length && Array.from(a[0]).some((x) => x > 0));
+        break;
+      case OPS.setStrokeRGBColor:
+        st.col = colorStr(a);
+        break;
+      case OPS.setFillRGBColor:
+        st.fcol = colorStr(a);
+        break;
+      case OPS.beginMarkedContentProps:
+        mc.push(a && a[0] === "OC" ? ocName(a[1]) : null);
+        break;
+      case OPS.beginMarkedContent:
+        mc.push(null);
+        break;
+      case OPS.endMarkedContent:
+        mc.pop();
+        break;
+      case OPS.constructPath:
+        handlePath(a);
+        break;
+    }
+  }
+  return { ents: out, fillOnlyLayers };
+}
+$("file").addEventListener("change", async (ev) => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  try {
+    S.fileName = f.name.replace(/\.[^.]+$/, "");
+    const ext = f.name.split(".").pop().toLowerCase();
+    const buf = await f.arrayBuffer();
+    S.kind = ext;
+    S.pdf = null;
+    $("pageRow").hidden = true;
+    if (ext === "pdf") {
+      status("Loading pdf.js\u2026");
+      const pdfjs = await getPdfjs();
+      S.pdf = await pdfjs.getDocument({ data: new Uint8Array(buf) }).promise;
+      const sel = $("page");
+      sel.innerHTML = "";
+      for (let i = 1; i <= S.pdf.numPages; i++) sel.add(new Option("Page " + i, i));
+      $("pageRow").hidden = S.pdf.numPages < 2;
+      await loadPdfPage(1);
+    } else if (ext === "dxf") {
+      status("Parsing DXF\u2026");
+      await nextFrame();
+      let text = new TextDecoder("utf-8").decode(buf);
+      if (text.includes("\uFFFD")) text = new TextDecoder("windows-1252").decode(buf);
+      if (text.startsWith("AutoCAD Binary DXF")) throw new Error("Binary DXF is not supported \u2013 save as ASCII DXF.");
+      const model = parseDXF(text);
+      setDrawing(explodeModel(model), INSUNITS_MM[model.insunits] ?? 1, model.layerOff, `DXF \xB7 units: ${model.insunits ? "INSUNITS " + model.insunits : "unitless (assumed mm)"}`);
+    } else if (ext === "dwg") {
+      status("Loading LibreDWG (WASM, first time ~8 MB)\u2026");
+      const { m, lib } = await getLibreDwg();
+      status("Reading DWG\u2026");
+      await nextFrame();
+      const dwg = lib.dwg_read_data(buf, m.Dwg_File_Type.DWG);
+      if (!dwg) throw new Error("LibreDWG could not read this DWG. Convert it to DXF (ODA File Converter / AutoCAD) and load the DXF.");
+      const db = lib.convert(dwg);
+      try {
+        lib.dwg_free(dwg);
+      } catch (_) {
+      }
+      const model = dwgToModel(db);
+      setDrawing(explodeModel(model), INSUNITS_MM[model.insunits] ?? 1, model.layerOff, `DWG \xB7 units: ${model.insunits ? "INSUNITS " + model.insunits : "unitless (assumed mm)"}`);
+    } else throw new Error("Unsupported file type: ." + ext);
+  } catch (e) {
+    console.error(e);
+    status("Error: " + (e.message || e), "err");
+  }
+});
+$("page").addEventListener("change", () => loadPdfPage(+$("page").value).catch((e) => status("Error: " + e.message, "err")));
+async function loadPdfPage(n) {
+  status(`Reading PDF page ${n}\u2026`);
+  await nextFrame();
+  const pdfjs = await getPdfjs();
+  const { ents, fillOnlyLayers } = await readPdfPage(pdfjs, S.pdf, n);
+  if (!ents.length) throw new Error("No vector geometry found on this page (scanned / raster PDFs are not supported).");
+  setDrawing(ents, 25.4 / 72, fillOnlyLayers, `PDF page ${n} of ${S.pdf.numPages} \xB7 units: points (1/72")`);
+}
+function setDrawing(ents, unitToMm, offLayers, info) {
+  ents = ents.filter((e) => e.pts.length >= 2 && e.pts.every((p) => isFinite(p[0]) && isFinite(p[1])));
+  if (!ents.length) throw new Error("No supported 2D geometry found in the drawing.");
+  for (const e of ents) e.bb = bboxOf(e.pts);
+  S.ents = ents;
+  S.bb = ents.reduce((bb, e) => [Math.min(bb[0], e.bb[0]), Math.min(bb[1], e.bb[1]), Math.max(bb[2], e.bb[2]), Math.max(bb[3], e.bb[3])], [Infinity, Infinity, -Infinity, -Infinity]);
+  S.layers = /* @__PURE__ */ new Map();
+  for (const e of ents) {
+    const L = S.layers.get(e.layer) || { count: 0, on: !offLayers.has(e.layer) };
+    L.count++;
+    S.layers.set(e.layer, L);
+  }
+  if ([...S.layers.values()].every((L) => !L.on)) for (const L of S.layers.values()) L.on = true;
+  $("unit").value = +unitToMm.toPrecision(6);
+  $("scale").value = 1;
+  const diag = Math.hypot(S.bb[2] - S.bb[0], S.bb[3] - S.bb[1]);
+  $("tol").value = +(diag * 1e-4).toPrecision(2);
+  S.crop = null;
+  S.views = { front: null, top: null, side: null };
+  S.regions = {};
+  S.calib = [];
+  renderLayerList();
+  const w = (S.bb[2] - S.bb[0]) * unitToMm, h = (S.bb[3] - S.bb[1]) * unitToMm;
+  $("fileInfo").textContent = `${S.fileName} \xB7 ${info} \xB7 ${ents.length} curves \xB7 ${S.layers.size} layers \xB7 extents ${w.toFixed(1)} \xD7 ${h.toFixed(1)} mm`;
+  fit2D();
+  geomChanged();
+  if (S.mode === "ortho") autoViews();
+  else if (S.kind === "pdf") autoCropLargest();
+  status("Drawing loaded. " + (S.mode === "ortho" ? "Check the detected views." : "Shaded areas will be extruded."), "ok");
+}
+function renderLayerList() {
+  const box = $("layers");
+  box.innerHTML = "";
+  const names = [...S.layers.keys()].sort((a, b) => S.layers.get(b).count - S.layers.get(a).count);
+  for (const name of names) {
+    const L = S.layers.get(name), lab = document.createElement("label"), cb = document.createElement("input");
+    lab.className = "inl";
+    lab.title = name;
+    cb.type = "checkbox";
+    cb.checked = L.on;
+    cb.onchange = () => {
+      L.on = cb.checked;
+      geomChanged();
+    };
+    lab.append(cb, " " + name + " ");
+    const c = document.createElement("span");
+    c.className = "cnt";
+    c.textContent = "(" + L.count + ")";
+    lab.append(c);
+    box.append(lab);
+  }
+}
+$("layAll").onclick = () => {
+  for (const L of S.layers.values()) L.on = true;
+  renderLayerList();
+  geomChanged();
+};
+$("layNone").onclick = () => {
+  for (const L of S.layers.values()) L.on = false;
+  renderLayerList();
+  geomChanged();
+};
+$("ignDashed").onchange = () => geomChanged();
+$("tol").onchange = () => geomChanged();
+var isActive = (e) => S.layers.get(e.layer)?.on && !(e.dashed && $("ignDashed").checked);
+var activeEnts = () => S.ents.filter(isActive);
+function buildRegion(polys, tol) {
+  const segs = [];
+  for (const p of polys) for (let i = 0; i + 1 < p.length; i++) {
+    const a = p[i], b = p[i + 1];
+    if (Math.hypot(b[0] - a[0], b[1] - a[1]) > tol * 0.01) segs.push([a[0], a[1], b[0], b[1]]);
+  }
+  const N = segs.length, empty = { cells: [], nEdges: 0 };
+  if (!N) return empty;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const s of segs) {
+    x0 = Math.min(x0, s[0], s[2]);
+    y0 = Math.min(y0, s[1], s[3]);
+    x1 = Math.max(x1, s[0], s[2]);
+    y1 = Math.max(y1, s[1], s[3]);
+  }
+  const diag = Math.hypot(x1 - x0, y1 - y0) || 1;
+  tol = Math.max(tol, diag * 1e-9);
+  const gs = Math.max(diag / Math.max(8, Math.sqrt(N) * 1.5), tol * 4);
+  const GW = Math.min(65e3, Math.floor((x1 - x0) / gs) + 2);
+  const grid2 = /* @__PURE__ */ new Map();
+  const cellRange = (s) => [
+    Math.floor((Math.min(s[0], s[2]) - tol - x0) / gs),
+    Math.floor((Math.min(s[1], s[3]) - tol - y0) / gs),
+    Math.floor((Math.max(s[0], s[2]) + tol - x0) / gs),
+    Math.floor((Math.max(s[1], s[3]) + tol - y0) / gs)
+  ];
+  for (let i = 0; i < N; i++) {
+    const [a, b, c, d] = cellRange(segs[i]);
+    for (let gx = a; gx <= c; gx++) for (let gy = b; gy <= d; gy++) {
+      const k = gy * GW + gx;
+      let l = grid2.get(k);
+      if (!l) grid2.set(k, l = []);
+      l.push(i);
+    }
+  }
+  const splits = segs.map(() => [0, 1]);
+  const onSeg = (k, px, py) => {
+    const s = segs[k], rx = s[2] - s[0], ry = s[3] - s[1], l2 = rx * rx + ry * ry;
+    const t = ((px - s[0]) * rx + (py - s[1]) * ry) / l2;
+    if (t > 0 && t < 1 && Math.hypot(s[0] + rx * t - px, s[1] + ry * t - py) < tol) splits[k].push(t);
+  };
+  const mark = new Int32Array(N).fill(-1);
+  for (let i = 0; i < N; i++) {
+    const si = segs[i], [a, b, c, d] = cellRange(si);
+    for (let gx = a; gx <= c; gx++) for (let gy = b; gy <= d; gy++) {
+      const l = grid2.get(gy * GW + gx);
+      if (!l) continue;
+      for (const j of l) {
+        if (j <= i || mark[j] === i) continue;
+        mark[j] = i;
+        const sj = segs[j];
+        if (Math.max(si[0], si[2]) + tol < Math.min(sj[0], sj[2]) || Math.max(sj[0], sj[2]) + tol < Math.min(si[0], si[2]) || Math.max(si[1], si[3]) + tol < Math.min(sj[1], sj[3]) || Math.max(sj[1], sj[3]) + tol < Math.min(si[1], si[3])) continue;
+        const rx = si[2] - si[0], ry = si[3] - si[1], sx = sj[2] - sj[0], sy = sj[3] - sj[1];
+        const lr = Math.hypot(rx, ry), ls = Math.hypot(sx, sy), den = rx * sy - ry * sx;
+        if (Math.abs(den) > 1e-9 * lr * ls) {
+          const qx = sj[0] - si[0], qy = sj[1] - si[1];
+          const t = (qx * sy - qy * sx) / den, u = (qx * ry - qy * rx) / den, et = tol / lr, eu2 = tol / ls;
+          if (t > -et && t < 1 + et && u > -eu2 && u < 1 + eu2) {
+            splits[i].push(Math.min(1, Math.max(0, t)));
+            splits[j].push(Math.min(1, Math.max(0, u)));
+          }
+        }
+        onSeg(i, sj[0], sj[1]);
+        onSeg(i, sj[2], sj[3]);
+        onSeg(j, si[0], si[1]);
+        onSeg(j, si[2], si[3]);
+      }
+    }
+  }
+  const vx = [], vy = [], vgrid = /* @__PURE__ */ new Map();
+  const vid = (x, y) => {
+    const ix = Math.floor(x / tol), iy = Math.floor(y / tol);
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const l2 = vgrid.get(ix + dx + "," + (iy + dy));
+      if (l2) {
+        for (const id2 of l2) if (Math.hypot(vx[id2] - x, vy[id2] - y) <= tol) return id2;
+      }
+    }
+    const id = vx.length;
+    vx.push(x);
+    vy.push(y);
+    const k = ix + "," + iy;
+    let l = vgrid.get(k);
+    if (!l) vgrid.set(k, l = []);
+    l.push(id);
+    return id;
+  };
+  const eu = [], ev = [], eset = /* @__PURE__ */ new Set(), BIG = 2 ** 26;
+  for (let i = 0; i < N; i++) {
+    const s = segs[i], ts = splits[i].sort((a, b) => a - b);
+    let prev = vid(s[0], s[1]);
+    for (let k = 1; k < ts.length; k++) {
+      if (ts[k] - ts[k - 1] < 1e-12 && k < ts.length - 1) continue;
+      const t = ts[k], id = vid(s[0] + (s[2] - s[0]) * t, s[1] + (s[3] - s[1]) * t);
+      if (id !== prev) {
+        const key = Math.min(prev, id) * BIG + Math.max(prev, id);
+        if (!eset.has(key)) {
+          eset.add(key);
+          eu.push(prev);
+          ev.push(id);
+        }
+      }
+      prev = id;
+    }
+  }
+  const NV = vx.length, NE = eu.length;
+  if (!NE) return empty;
+  const adj = Array.from({ length: NV }, () => []);
+  for (let e = 0; e < NE; e++) {
+    adj[eu[e]].push(e);
+    adj[ev[e]].push(e);
+  }
+  const alive = new Uint8Array(NE).fill(1), deg = Int32Array.from(adj, (l) => l.length);
+  const queue = [];
+  for (let v = 0; v < NV; v++) if (deg[v] === 1) queue.push(v);
+  while (queue.length) {
+    const v = queue.pop();
+    if (deg[v] !== 1) continue;
+    const e = adj[v].find((e2) => alive[e2]);
+    alive[e] = 0;
+    deg[v]--;
+    const o = eu[e] === v ? ev[e] : eu[e];
+    if (--deg[o] === 1) queue.push(o);
+  }
+  const par = Int32Array.from({ length: NV }, (_, i) => i);
+  const find = (x) => {
+    while (par[x] !== x) {
+      par[x] = par[par[x]];
+      x = par[x];
+    }
+    return x;
+  };
+  for (let e = 0; e < NE; e++) if (alive[e]) {
+    const a = find(eu[e]), b = find(ev[e]);
+    if (a !== b) par[a] = b;
+  }
+  const org = (h) => h & 1 ? ev[h >> 1] : eu[h >> 1];
+  const dst = (h) => h & 1 ? eu[h >> 1] : ev[h >> 1];
+  const out = Array.from({ length: NV }, () => []);
+  for (let e = 0; e < NE; e++) if (alive[e]) {
+    out[eu[e]].push(2 * e);
+    out[ev[e]].push(2 * e + 1);
+  }
+  const pos = new Int32Array(2 * NE);
+  for (let v = 0; v < NV; v++) {
+    const l = out[v];
+    if (!l.length) continue;
+    const ang = new Map(l.map((h) => [h, Math.atan2(vy[dst(h)] - vy[v], vx[dst(h)] - vx[v])]));
+    l.sort((a, b) => ang.get(a) - ang.get(b));
+    l.forEach((h, i) => {
+      pos[h] = i;
+    });
+  }
+  const next = (h) => {
+    const t = h ^ 1, l = out[dst(h)];
+    return l[(pos[t] - 1 + l.length) % l.length];
+  };
+  const vis = new Uint8Array(2 * NE), cycles = [];
+  for (let e = 0; e < NE; e++) {
+    if (!alive[e]) continue;
+    for (const h0 of [2 * e, 2 * e + 1]) {
+      if (vis[h0]) continue;
+      const poly = [];
+      let h = h0, guard = 0;
+      do {
+        vis[h] = 1;
+        poly.push([vx[org(h)], vy[org(h)]]);
+        h = next(h);
+      } while (h !== h0 && ++guard < 2 * NE + 2);
+      cycles.push({ poly, area: polyArea(poly), comp: find(org(h0)), bb: bboxOf(poly) });
+    }
+  }
+  const minArea = diag * diag * 1e-10;
+  const cells = cycles.filter((c) => c.area > minArea);
+  const outers = /* @__PURE__ */ new Map();
+  for (const c of cycles) if (c.area < 0 && (!outers.has(c.comp) || c.area < outers.get(c.comp).area)) outers.set(c.comp, c);
+  const contains = (c, x, y) => inBB(c.bb, x, y) && pip2(x, y, c.poly);
+  for (const c of cells) {
+    c.holes = [];
+    c.holeComps = [];
+  }
+  for (const [comp, o] of outers) {
+    const [x, y] = o.poly[0];
+    let best = null;
+    for (const c of cells) if (c.comp !== comp && contains(c, x, y) && (!best || c.area < best.area)) best = c;
+    if (best) {
+      best.holes.push(o.poly);
+      best.holeComps.push(comp);
+    }
+  }
+  let main = null;
+  for (const o of outers.values()) if (!main || o.area < main.area) main = o;
+  cells.forEach((c, i) => {
+    const [x, y] = c.poly[0];
+    c.id = i;
+    c.depth = 1;
+    for (const [comp, o] of outers) if (comp !== c.comp && contains(o, x, y)) c.depth++;
+    c.inMain = c.comp === main.comp || contains(main, x, y);
+    const p = new Path2D();
+    for (const ring of [c.poly, ...c.holes]) {
+      ring.forEach((q, k) => k ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1]));
+      p.closePath();
+    }
+    c.path = p;
+  });
+  return { cells, nEdges: NE };
+}
+var regionKeys = () => S.mode === "ortho" ? ["front", "top", "side"] : ["main"];
+var isProfileMode = () => S.mode === "extrude" || S.mode === "revolve";
+var regionRect = (key) => key === "main" ? S.crop : S.views[key];
+function polysIn(rect) {
+  const out = [];
+  for (const e of S.ents) {
+    if (!isActive(e)) continue;
+    if (rect && !(e.bb[0] >= rect.x0 && e.bb[1] >= rect.y0 && e.bb[2] <= rect.x1 && e.bb[3] <= rect.y1)) continue;
+    out.push(e.closed ? [...e.pts, e.pts[0]] : e.pts);
+  }
+  return out;
+}
+function getRegion(key) {
+  const rect = regionRect(key);
+  if (key !== "main" && !rect) return null;
+  let R = S.regions[key];
+  if (!R || R.ver !== S.geomVer || R.rect !== rect) {
+    R = buildRegion(polysIn(rect), Math.max(0, +$("tol").value || 0));
+    R.ver = S.geomVer;
+    R.rect = rect;
+    R.toggled = /* @__PURE__ */ new Set();
+    S.regions[key] = R;
+  }
+  selectCells(R);
+  return R;
+}
+function selectCells(R) {
+  const rule = $("fill").value, mainOnly = $("mainOnly").checked;
+  R.sel = /* @__PURE__ */ new Set();
+  for (const c of R.cells) if ((!mainOnly || c.inMain) && (rule === "all" || c.depth % 2 === 1)) R.sel.add(c.id);
+  for (const id of R.toggled) R.sel.has(id) ? R.sel.delete(id) : R.sel.add(id);
+}
+function selectedPolys(R) {
+  const polys = [];
+  for (const c of R.cells) if (R.sel.has(c.id)) polys.push(c.poly, ...c.holes);
+  return polys;
+}
+function refreshRegions() {
+  if (!S.ents.length) return;
+  for (const k of regionKeys()) getRegion(k);
+}
+function geomChanged(rebuild = true) {
+  S.geomVer++;
+  rebuildPaths();
+  refreshRegions();
+  draw2D();
+  if (rebuild) scheduleBuild();
+}
+$("fill").onchange = () => {
+  refreshRegions();
+  for (const k of regionKeys()) if (S.regions[k]) {
+    S.regions[k].toggled.clear();
+    selectCells(S.regions[k]);
+  }
+  draw2D();
+  scheduleBuild();
+};
+$("mainOnly").onchange = $("fill").onchange;
+function detectClusters() {
+  const ents = activeEnts();
+  if (!ents.length) return { clusters: [], area: 0 };
+  const bb = ents.reduce((b, e) => [Math.min(b[0], e.bb[0]), Math.min(b[1], e.bb[1]), Math.max(b[2], e.bb[2]), Math.max(b[3], e.bb[3])], [Infinity, Infinity, -Infinity, -Infinity]);
+  const W = bb[2] - bb[0], H = bb[3] - bb[1], cs = Math.max(W, H) / 320 || 1;
+  const gw = Math.ceil(W / cs) + 7, gh = Math.ceil(H / cs) + 7, grid2 = new Uint8Array(gw * gh), R = 2;
+  const mark = (x, y) => {
+    const ix = Math.floor((x - bb[0]) / cs) + 3, iy = Math.floor((y - bb[1]) / cs) + 3;
+    grid2[iy * gw + ix] = 1;
+  };
+  for (const e of ents) {
+    const p = e.closed ? [...e.pts, e.pts[0]] : e.pts;
+    for (let i = 0; i + 1 < p.length; i++) {
+      const n = Math.ceil(Math.hypot(p[i + 1][0] - p[i][0], p[i + 1][1] - p[i][1]) / (cs * 0.5)) + 1;
+      for (let k = 0; k <= n; k++) mark(p[i][0] + (p[i + 1][0] - p[i][0]) * k / n, p[i][1] + (p[i + 1][1] - p[i][1]) * k / n);
+    }
+  }
+  const dil = new Uint8Array(gw * gh);
+  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) if (grid2[y * gw + x])
+    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+      const xx = x + dx, yy = y + dy;
+      if (xx >= 0 && yy >= 0 && xx < gw && yy < gh) dil[yy * gw + xx] = 1;
+    }
+  const lab = new Int32Array(gw * gh), clusters = [];
+  for (let s = 0; s < gw * gh; s++) {
+    if (!dil[s] || lab[s]) continue;
+    const id = clusters.length + 1, st = [s];
+    lab[s] = id;
+    let a = gw, b = gh, c = 0, d = 0;
+    while (st.length) {
+      const q = st.pop(), x = q % gw, y = (q - x) / gw;
+      if (x < a) a = x;
+      if (x > c) c = x;
+      if (y < b) b = y;
+      if (y > d) d = y;
+      for (const n of [q - 1, q + 1, q - gw, q + gw]) if (n >= 0 && n < gw * gh && dil[n] && !lab[n] && Math.abs(n % gw - x) <= 1) {
+        lab[n] = id;
+        st.push(n);
+      }
+    }
+    const r = { x0: bb[0] + (a - 3) * cs, y0: bb[1] + (b - 3) * cs, x1: bb[0] + (c - 2) * cs, y1: bb[1] + (d - 2) * cs };
+    r.area = (r.x1 - r.x0) * (r.y1 - r.y0);
+    clusters.push(r);
+  }
+  clusters.sort((p, q) => q.area - p.area);
+  return { clusters, area: W * H };
+}
+function partClusters() {
+  const { clusters, area } = detectClusters();
+  let c = clusters;
+  if (c.length > 1) c = c.filter((k) => k.area < 0.5 * area);
+  if (c.length) c = c.filter((k) => k.area > 0.02 * c[0].area);
+  return { clusters: c, frame: c.length < clusters.length };
+}
+function autoCropLargest() {
+  const { clusters, frame } = partClusters();
+  if (frame && clusters.length) {
+    S.crop = clusters[0];
+    refreshRegions();
+    draw2D();
+    scheduleBuild();
+  }
+}
+var overlap = (a0, a1, b0, b1) => Math.max(0, Math.min(a1, b1) - Math.max(a0, b0)) / Math.max(1e-12, Math.min(a1 - a0, b1 - b0));
+var vAlign = (a, b) => overlap(a.x0, a.x1, b.x0, b.x1);
+var hAlign = (a, b) => overlap(a.y0, a.y1, b.y0, b.y1);
+function autoViews() {
+  const { clusters } = partClusters(), c = clusters.slice(0, 3);
+  S.views = { front: null, top: null, side: null };
+  if (c.length >= 3) {
+    let best = null;
+    for (const [f, t, s] of [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]) {
+      const score = vAlign(c[f], c[t]) + hAlign(c[f], c[s]) - 0.5 * (vAlign(c[f], c[s]) + hAlign(c[f], c[t]));
+      if (!best || score > best.score) best = { score, f, t, s };
+    }
+    S.views = { front: c[best.f], top: c[best.t], side: c[best.s] };
+  } else if (c.length === 2) {
+    const [a, b] = c, first = $("proj").value === "first";
+    if (vAlign(a, b) >= hAlign(a, b)) {
+      const upper = a.y0 > b.y0 ? a : b, lower = upper === a ? b : a;
+      S.views.front = first ? upper : lower;
+      S.views.top = first ? lower : upper;
+    } else {
+      const left = a.x0 < b.x0 ? a : b;
+      S.views.front = left;
+      S.views.side = left === a ? b : a;
+    }
+  }
+  const n = Object.values(S.views).filter(Boolean).length;
+  computeFlips();
+  refreshRegions();
+  draw2D();
+  scheduleBuild();
+  status(n >= 2 ? `Detected ${n} views. Check FRONT / TOP / SIDE labels \u2013 redraw a view with the buttons if wrong.` : "Could not detect 2+ separate views. Draw them manually with the Front / Top / Side buttons.", n >= 2 ? "ok" : "err");
+}
+function computeFlips() {
+  const { front, top, side } = S.views, first = $("proj").value === "first";
+  const cx = (r) => (r.x0 + r.x1) / 2, cy = (r) => (r.y0 + r.y1) / 2;
+  $("flipSide").checked = !!(front && side) && first !== cx(side) < cx(front);
+  $("flipTop").checked = !!(front && top) && (first ? cy(top) > cy(front) : cy(top) < cy(front));
+}
+$("proj").onchange = () => {
+  computeFlips();
+  draw2D();
+  scheduleBuild();
+};
+$("flipSide").onchange = $("flipTop").onchange = () => {
+  draw2D();
+  scheduleBuild();
+};
+$("btnAuto").onclick = () => S.ents.length && autoViews();
+$("btnViewsClr").onclick = () => {
+  S.views = { front: null, top: null, side: null };
+  draw2D();
+  scheduleBuild();
+};
+function setMode(m) {
+  S.mode = m;
+  $("tabExtrude").classList.toggle("on", m === "extrude");
+  $("tabRevolve").classList.toggle("on", m === "revolve");
+  $("tabOrtho").classList.toggle("on", m === "ortho");
+  $("pExtrude").hidden = m !== "extrude";
+  $("pRevolve").hidden = m !== "revolve";
+  $("pOrtho").hidden = m !== "ortho";
+  $("pFinish").hidden = m === "ortho";
+  $("lblCaps").hidden = m !== "extrude";
+  $("fill").value = m === "ortho" ? "all" : "evenodd";
+  for (const R of Object.values(S.regions)) R.toggled.clear();
+  if (m === "ortho" && S.ents.length && !Object.values(S.views).some(Boolean)) autoViews();
+  else {
+    refreshRegions();
+    draw2D();
+    scheduleBuild();
+  }
+}
+$("tabExtrude").onclick = () => setMode("extrude");
+$("tabOrtho").onclick = () => setMode("ortho");
+$("tabRevolve").onclick = () => setMode("revolve");
+function setTool(t) {
+  S.tool = S.tool === t ? null : t;
+  S.calib = [];
+  document.querySelectorAll("[data-view]").forEach((b) => b.classList.toggle("active", S.tool === b.dataset.view));
+  for (const id of ["btnCrop", "btnCrop2"]) $(id).classList.toggle("active", S.tool === "crop");
+  $("btnAxisPick").classList.toggle("active", S.tool === "axis");
+  $("btnCalib").classList.toggle("active", S.tool === "calib");
+  const hints = {
+    crop: "Drag a rectangle around the part to extrude.",
+    front: "Drag a rectangle around the FRONT view.",
+    top: "Drag a rectangle around the TOP view.",
+    side: "Drag a rectangle around the SIDE view.",
+    axis: "Click the centreline (snaps to line ends).",
+    calib: "Click the first point (snaps to line ends)."
+  };
+  $("hint2d").textContent = hints[S.tool] || "";
+  draw2D();
+}
+document.querySelectorAll("[data-view]").forEach((b) => b.onclick = () => setTool(b.dataset.view));
+for (const id of ["btnCrop", "btnCrop2"]) $(id).onclick = () => setTool("crop");
+for (const id of ["btnCropClr", "btnCropClr2"]) $(id).onclick = () => {
+  S.crop = null;
+  refreshRegions();
+  draw2D();
+  scheduleBuild();
+};
+["revDir", "axisPos", "revAngle", "revSeg", "edgeKind", "edgeSize", "edgeProfile", "edgeCaps", "edgeConcave", "useHidden"].forEach((id) => $(id).addEventListener("change", () => {
+  draw2D();
+  scheduleBuild();
+}));
+function revAxis() {
+  const dir = $("revDir").value;
+  let pos = parseFloat($("axisPos").value);
+  if (!isFinite(pos) && S.ents.length) {
+    const polys = selectedPolys(getRegion("main")), bb = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const p of polys) bboxOf(p, bb);
+    if (polys.length) pos = dir === "v" ? bb[0] : bb[1];
+  }
+  return isFinite(pos) ? { dir, pos } : null;
+}
+function detectCenterline() {
+  if (!S.ents.length) return;
+  const r = S.crop;
+  let best = null;
+  for (const e of S.ents) {
+    if (!(e.dashed || /cent|axis|ctr|achse|mitt/i.test(e.layer))) continue;
+    for (let i = 0; i + 1 < e.pts.length; i++) {
+      const a = e.pts[i], b = e.pts[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+      if (!(L > 0) || Math.abs(dx) > 1e-3 * L && Math.abs(dy) > 1e-3 * L) continue;
+      const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      if (r && !(mx >= r.x0 && mx <= r.x1 && my >= r.y0 && my <= r.y1)) continue;
+      if (!best || L > best.L) best = { L, v: Math.abs(dx) < Math.abs(dy), pos: Math.abs(dx) < Math.abs(dy) ? mx : my };
+    }
+  }
+  if (!best) {
+    status("No dashed centre line found \u2013 use \u201CPick on drawing\u201D, or type the axis position.", "err");
+    return;
+  }
+  $("revDir").value = best.v ? "v" : "h";
+  $("axisPos").value = +best.pos.toPrecision(8);
+  draw2D();
+  scheduleBuild();
+  status(`Centre line found (${best.v ? "vertical" : "horizontal"}). Select the half-profile region next if the sheet has several parts.`, "ok");
+}
+$("btnAxisDetect").onclick = detectCenterline;
+$("btnAxisPick").onclick = () => setTool("axis");
+$("btnAxisAuto").onclick = () => {
+  $("axisPos").value = "";
+  draw2D();
+  scheduleBuild();
+};
+function axisClick(w) {
+  const v = $("revDir").value === "v", c = v ? 0 : 1;
+  let best = w[c], bd = 12 / V.zoom;
+  for (const e of S.ents) for (const p of e.pts) {
+    const d = Math.abs(p[c] - w[c]);
+    if (d < bd) {
+      bd = d;
+      best = p[c];
+    }
+  }
+  $("axisPos").value = +best.toPrecision(8);
+  setTool(null);
+  draw2D();
+  scheduleBuild();
+}
+$("btnCalib").onclick = () => setTool("calib");
+["unit", "scale", "thk"].forEach((id) => $(id).addEventListener("change", () => scheduleBuild()));
+var cv = $("c2d");
+var ctx = cv.getContext("2d");
+var V = { zoom: 1, ox: 0, oy: 0 };
+var paths = [];
+function rebuildPaths() {
+  const groups = /* @__PURE__ */ new Map();
+  for (const e of S.ents) {
+    const act = isActive(e), k = act ? "on" : "off";
+    let p = groups.get(k);
+    if (!p) groups.set(k, p = new Path2D());
+    e.pts.forEach((q, i) => i ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1]));
+    if (e.closed) p.closePath();
+  }
+  paths = [...groups].map(([k, path]) => ({ path, on: k === "on" }));
+}
+function resize2D() {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = Math.max(1, r.width * dpr);
+  cv.height = Math.max(1, r.height * dpr);
+  draw2D();
+}
+function fit2D() {
+  if (!S.bb) return;
+  const r = cv.getBoundingClientRect(), w = S.bb[2] - S.bb[0] || 1, h = S.bb[3] - S.bb[1] || 1;
+  V.zoom = Math.min(r.width / w, r.height / h) * 0.92;
+  V.ox = (S.bb[0] + S.bb[2]) / 2 - r.width / 2 / V.zoom;
+  V.oy = (S.bb[1] + S.bb[3]) / 2 + r.height / 2 / V.zoom;
+  draw2D();
+}
+var toWorld = (sx, sy) => [sx / V.zoom + V.ox, V.oy - sy / V.zoom];
+var toScreen = (x, y) => [(x - V.ox) * V.zoom, (V.oy - y) * V.zoom];
+var VIEW_COL = { main: "#f0b429", crop: "#f0b429", front: "#ff6b6b", top: "#7ee787", side: "#58a6ff" };
+var dragRect = null;
+function draw2D() {
+  const dpr = window.devicePixelRatio || 1;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  if (!S.ents.length) return;
+  ctx.setTransform(dpr * V.zoom, 0, 0, -dpr * V.zoom, -dpr * V.zoom * V.ox, dpr * V.zoom * V.oy);
+  for (const k of regionKeys()) {
+    const R = S.regions[k];
+    if (!R || k !== "main" && !S.views[k]) continue;
+    for (const c of R.cells) {
+      const on = R.sel.has(c.id);
+      ctx.fillStyle = on ? `rgba(${modelRGB},0.34)` : "rgba(255,255,255,0.03)";
+      ctx.fill(c.path, "evenodd");
+    }
+  }
+  ctx.lineWidth = 1 / V.zoom;
+  for (const p of paths) {
+    ctx.strokeStyle = p.on ? "#cfe6fa" : "#36445a";
+    ctx.stroke(p.path);
+  }
+  if (S.mode === "ortho" && S.carve && S.carve.length) {
+    ctx.strokeStyle = "#ff4fd8";
+    ctx.lineWidth = 2.2 / V.zoom;
+    ctx.setLineDash([5 / V.zoom, 3 / V.zoom]);
+    for (const c of S.carve) {
+      ctx.beginPath();
+      c.ring.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]));
+      ctx.closePath();
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.lineWidth = 1 / V.zoom;
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.font = '12px "Chakra Petch", "Segoe UI", Arial';
+  ctx.lineWidth = 1.5;
+  if (S.mode === "revolve") {
+    const ax = revAxis();
+    if (ax) {
+      const W = cv.width / dpr, H = cv.height / dpr, [sx, sy] = toScreen(ax.dir === "v" ? ax.pos : 0, ax.dir === "h" ? ax.pos : 0);
+      ctx.save();
+      ctx.strokeStyle = ctx.fillStyle = "#ff4fd8";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([14, 4, 2, 4]);
+      ctx.beginPath();
+      if (ax.dir === "v") {
+        ctx.moveTo(sx, 0);
+        ctx.lineTo(sx, H);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillText("AXIS", sx + 5, 14);
+      } else {
+        ctx.moveTo(0, sy);
+        ctx.lineTo(W, sy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillText("AXIS", 6, sy - 5);
+      }
+      ctx.restore();
+    }
+  }
+  const rects = isProfileMode() ? [["crop", S.crop, "REGION"]] : [["front", S.views.front, "FRONT"], ["top", S.views.top, "TOP" + ($("flipTop").checked ? " (mirrored)" : "")], ["side", S.views.side, "SIDE" + ($("flipSide").checked ? " (mirrored)" : "")]];
+  for (const [k, r, label] of rects) {
+    if (!r) continue;
+    const [a, b] = toScreen(r.x0, r.y1), [c, d] = toScreen(r.x1, r.y0);
+    ctx.strokeStyle = ctx.fillStyle = VIEW_COL[k];
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(a, b, c - a, d - b);
+    ctx.setLineDash([]);
+    ctx.fillText(label, a + 3, b - 4);
+  }
+  if (dragRect) {
+    const [a, b] = toScreen(dragRect.x0, dragRect.y1), [c, d] = toScreen(dragRect.x1, dragRect.y0);
+    ctx.strokeStyle = VIEW_COL[S.tool] || "#fff";
+    ctx.strokeRect(a, b, c - a, d - b);
+  }
+  for (const p of S.calib) {
+    const [a, b] = toScreen(p[0], p[1]);
+    ctx.strokeStyle = "#f0b429";
+    ctx.beginPath();
+    ctx.arc(a, b, 5, 0, TAU);
+    ctx.stroke();
+  }
+}
+new ResizeObserver(resize2D).observe(cv);
+cv.addEventListener("wheel", (ev) => {
+  ev.preventDefault();
+  const r = cv.getBoundingClientRect(), sx = ev.clientX - r.left, sy = ev.clientY - r.top, w = toWorld(sx, sy);
+  V.zoom *= Math.exp(-ev.deltaY * 15e-4);
+  V.ox = w[0] - sx / V.zoom;
+  V.oy = w[1] + sy / V.zoom;
+  draw2D();
+}, { passive: false });
+cv.addEventListener("dblclick", fit2D);
+var drag = null;
+cv.addEventListener("pointerdown", (ev) => {
+  const r = cv.getBoundingClientRect();
+  drag = { sx: ev.clientX - r.left, sy: ev.clientY - r.top, ox: V.ox, oy: V.oy, moved: false, btn: ev.button };
+  cv.setPointerCapture(ev.pointerId);
+});
+cv.addEventListener("pointermove", (ev) => {
+  if (!drag) return;
+  const r = cv.getBoundingClientRect(), sx = ev.clientX - r.left, sy = ev.clientY - r.top;
+  if (Math.hypot(sx - drag.sx, sy - drag.sy) > 3) drag.moved = true;
+  if (!drag.moved) return;
+  if (drag.btn === 0 && ["crop", "front", "top", "side"].includes(S.tool)) {
+    const a = toWorld(drag.sx, drag.sy), b = toWorld(sx, sy);
+    dragRect = { x0: Math.min(a[0], b[0]), y0: Math.min(a[1], b[1]), x1: Math.max(a[0], b[0]), y1: Math.max(a[1], b[1]) };
+  } else {
+    V.ox = drag.ox - (sx - drag.sx) / V.zoom;
+    V.oy = drag.oy + (sy - drag.sy) / V.zoom;
+  }
+  draw2D();
+});
+cv.addEventListener("pointerup", (ev) => {
+  if (!drag) return;
+  const d = drag;
+  drag = null;
+  if (dragRect) {
+    const rect = dragRect;
+    dragRect = null;
+    if (S.tool === "crop") S.crop = rect;
+    else {
+      S.views[S.tool] = rect;
+      computeFlips();
+    }
+    setTool(null);
+    refreshRegions();
+    draw2D();
+    scheduleBuild();
+    return;
+  }
+  if (d.moved || d.btn !== 0 || !S.ents.length) return;
+  const w = toWorld(d.sx, d.sy);
+  if (S.tool === "calib") return calibClick(w);
+  if (S.tool === "axis") return axisClick(w);
+  toggleCellAt(w);
+});
+function toggleCellAt([x, y]) {
+  for (const k of regionKeys()) {
+    const R = S.regions[k], rect = regionRect(k);
+    if (!R || rect && !(x >= rect.x0 && x <= rect.x1 && y >= rect.y0 && y <= rect.y1)) continue;
+    let best = null;
+    for (const c of R.cells) if (inBB(c.bb, x, y) && pip2(x, y, c.poly) && !c.holes.some((h) => pip2(x, y, h)) && (!best || c.area < best.area)) best = c;
+    if (!best) continue;
+    R.toggled.has(best.id) ? R.toggled.delete(best.id) : R.toggled.add(best.id);
+    R.sel.has(best.id) ? R.sel.delete(best.id) : R.sel.add(best.id);
+    draw2D();
+    scheduleBuild();
+    return;
+  }
+}
+function calibClick(w) {
+  let best = w, bd = 12 / V.zoom;
+  for (const e of S.ents) if (isActive(e)) for (const p of e.pts) {
+    const d = Math.hypot(p[0] - w[0], p[1] - w[1]);
+    if (d < bd) {
+      bd = d;
+      best = p;
+    }
+  }
+  S.calib.push(best);
+  draw2D();
+  if (S.calib.length === 1) {
+    $("hint2d").textContent = "Click the second point.";
+    return;
+  }
+  const [a, b] = S.calib, dist = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const curMm = dist * (+$("unit").value || 1);
+  const real = parseFloat(prompt(`Distance on drawing = ${curMm.toFixed(3)} mm at 1:1.
+Enter the real distance in mm:`, (curMm * (+$("scale").value || 1)).toFixed(3)));
+  if (real > 0 && curMm > 0) {
+    $("scale").value = +(real / curMm).toPrecision(6);
+    scheduleBuild();
+    status(`Scale set to 1 : ${$("scale").value}`, "ok");
+  }
+  setTool(null);
+}
+var host = $("c3d");
+var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio || 1, 2), 3));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0, 0);
+host.appendChild(renderer.domElement);
+var scene = new THREE.Scene();
+var pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.85;
+var camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1e7);
+camera.position.set(300, 250, 300);
+var controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.autoRotateSpeed = 1.4;
+scene.add(new THREE.HemisphereLight(13625087, 725536, 0.35));
+var keyLight = new THREE.DirectionalLight(16777215, 2.4);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+scene.add(keyLight, keyLight.target);
+var fillLight = new THREE.DirectionalLight(12572927, 0.6);
+fillLight.position.set(-1.5, 0.6, -1);
+scene.add(fillLight);
+var rimLight = new THREE.DirectionalLight(16777215, 1.5);
+rimLight.position.set(-1, 1.2, -2.2);
+scene.add(rimLight);
+var holder = new THREE.Group();
+holder.rotation.x = -Math.PI / 2;
+scene.add(holder);
+var grid = null;
+var axes = null;
+var floor = null;
+var stage = null;
+var wireMesh = null;
+var edgeLines = null;
+var mat = new THREE.MeshPhysicalMaterial({ color: 1688515, metalness: 0.2, roughness: 0.4, side: THREE.DoubleSide });
+var edgeMat = new THREE.LineBasicMaterial({ color: 666154, transparent: true, opacity: 0.9 });
+var wireMat = new THREE.MeshBasicMaterial({ color: 16777215, wireframe: true, transparent: true, opacity: 0.18, depthWrite: false });
+var floorMat = new THREE.ShadowMaterial({ opacity: 0.4 });
+var FINISH = {
+  carpaint: { metalness: 0.55, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.03 },
+  satin: { metalness: 0.1, roughness: 0.45, clearcoat: 0.2, clearcoatRoughness: 0.4 },
+  matte: { metalness: 0, roughness: 0.88, clearcoat: 0, clearcoatRoughness: 0.5 },
+  metal: { metalness: 1, roughness: 0.3, clearcoat: 0, clearcoatRoughness: 0.3 },
+  ghost: { metalness: 0, roughness: 0.15, clearcoat: 0.6, clearcoatRoughness: 0.1, opacity: 0.32 }
+};
+var SWATCHES = [
+  ["Cyan", "#19c3c3"],
+  ["Electric blue", "#3b82f6"],
+  ["Violet", "#8b5cf6"],
+  ["Magenta", "#e11d90"],
+  ["Signal red", "#ef4444"],
+  ["Orange", "#f97316"],
+  ["Amber", "#f0b429"],
+  ["Lime", "#84cc16"],
+  ["Pearl white", "#e8edf3"],
+  ["Silver", "#aab4c0"],
+  ["Graphite", "#3a4350"],
+  ["Gold", "#d4a017"]
+];
+var LOOK = { color: "#19c3c3", finish: "carpaint", edges: true, wire: false, floor: true, spin: false };
+try {
+  const saved = JSON.parse(localStorage.getItem("d2m-look") || "{}");
+  if (/^#[0-9a-f]{6}$/i.test(saved.color)) LOOK.color = saved.color;
+  if (FINISH[saved.finish]) LOOK.finish = saved.finish;
+  for (const k of ["edges", "wire", "floor", "spin"]) if (typeof saved[k] === "boolean") LOOK[k] = saved[k];
+} catch (_) {
+}
+for (const [name, hex] of SWATCHES) {
+  const b = document.createElement("button");
+  b.className = "sw";
+  b.title = name;
+  b.dataset.hex = hex;
+  b.setAttribute("aria-label", name + " " + hex);
+  b.style.background = hex;
+  b.style.color = hex;
+  b.onclick = () => {
+    LOOK.color = hex;
+    applyLook();
+  };
+  $("swatches").appendChild(b);
+}
+$("colorPick").addEventListener("input", (e) => {
+  LOOK.color = e.target.value;
+  applyLook();
+});
+$("colorHex").addEventListener("change", (e) => {
+  let v = e.target.value.trim();
+  if (v && v[0] !== "#") v = "#" + v;
+  if (/^#[0-9a-f]{6}$/i.test(v)) LOOK.color = v.toLowerCase();
+  applyLook();
+});
+$("finish").addEventListener("change", (e) => {
+  LOOK.finish = e.target.value;
+  applyLook();
+});
+for (const [id, key] of [["optEdges", "edges"], ["optWire", "wire"], ["optFloor", "floor"], ["optSpin", "spin"]]) $(id).addEventListener("change", (e) => {
+  LOOK[key] = e.target.checked;
+  applyLook();
+});
+$("btnShot").onclick = () => {
+  renderer.render(scene, camera);
+  renderer.domElement.toBlob((b) => b && download(b, (S.fileName || "model") + "_render.png", "image/png"));
+};
+function applyLook() {
+  const F = FINISH[LOOK.finish], c = new THREE.Color(LOOK.color), hsl = {};
+  c.getHSL(hsl);
+  mat.color.copy(c);
+  mat.metalness = F.metalness;
+  mat.roughness = F.roughness;
+  mat.clearcoat = F.clearcoat;
+  mat.clearcoatRoughness = F.clearcoatRoughness;
+  mat.transparent = !!F.opacity;
+  mat.opacity = F.opacity ?? 1;
+  mat.depthWrite = !F.opacity;
+  mat.needsUpdate = true;
+  const el = F.opacity ? Math.min(0.8, hsl.l + 0.3) : hsl.l > 0.55 ? hsl.l * 0.3 : Math.min(0.85, hsl.l + 0.38);
+  edgeMat.color.setHSL(hsl.h, hsl.s, el);
+  wireMat.color.setHSL(hsl.h, hsl.s, Math.min(0.85, hsl.l + 0.3));
+  rimLight.color.setHSL(hsl.h, Math.min(1, hsl.s + 0.1), 0.7);
+  document.documentElement.style.setProperty("--model", LOOK.color);
+  const hx = LOOK.color.slice(1);
+  modelRGB = `${parseInt(hx.slice(0, 2), 16)},${parseInt(hx.slice(2, 4), 16)},${parseInt(hx.slice(4, 6), 16)}`;
+  if (edgeLines) edgeLines.visible = LOOK.edges;
+  if (wireMesh) wireMesh.visible = LOOK.wire;
+  if (grid) grid.visible = LOOK.floor;
+  if (floor) floor.visible = LOOK.floor;
+  controls.autoRotate = LOOK.spin;
+  $("colorPick").value = LOOK.color;
+  $("colorHex").value = LOOK.color;
+  $("finish").value = LOOK.finish;
+  $("optEdges").checked = LOOK.edges;
+  $("optWire").checked = LOOK.wire;
+  $("optFloor").checked = LOOK.floor;
+  $("optSpin").checked = LOOK.spin;
+  for (const b of $("swatches").children) b.setAttribute("aria-pressed", String(b.dataset.hex.toLowerCase() === LOOK.color.toLowerCase()));
+  buildStage();
+  dirty = true;
+  try {
+    localStorage.setItem("d2m-look", JSON.stringify(LOOK));
+  } catch (_) {
+  }
+  draw2D();
+}
+function resize3D() {
+  const r = host.getBoundingClientRect();
+  dirty = true;
+  renderer.setSize(r.width, r.height);
+  camera.aspect = r.width / Math.max(1, r.height);
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize3D).observe(host);
+var dirty = true;
+var redraw = () => {
+  dirty = true;
+};
+controls.addEventListener("change", redraw);
+renderer.setAnimationLoop(() => {
+  const moved = controls.update();
+  if (moved || dirty) {
+    dirty = false;
+    renderer.render(scene, camera);
+  }
+});
+function buildStage() {
+  for (const o of [grid, axes, floor]) if (o) {
+    scene.remove(o);
+    o.geometry?.dispose();
+  }
+  grid = axes = floor = null;
+  if (!stage) return;
+  const { box, c, R } = stage, hsl = {};
+  new THREE.Color(LOOK.color).getHSL(hsl);
+  const major = new THREE.Color().setHSL(hsl.h, 0.55, 0.3), minor = new THREE.Color().setHSL(hsl.h, 0.4, 0.14);
+  grid = new THREE.GridHelper(R * 3, 30, major, minor);
+  grid.position.set(c.x, box.min.y - 1e-3 * R, c.z);
+  grid.material.transparent = true;
+  grid.material.opacity = 0.85;
+  grid.visible = LOOK.floor;
+  scene.add(grid);
+  floor = new THREE.Mesh(new THREE.PlaneGeometry(R * 8, R * 8), floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(c.x, box.min.y - 5e-4 * R, c.z);
+  floor.receiveShadow = true;
+  floor.visible = LOOK.floor;
+  scene.add(floor);
+  axes = new THREE.AxesHelper(R * 0.4);
+  axes.position.set(box.min.x, box.min.y, box.max.z);
+  scene.add(axes);
+}
+function showGeometry(geo) {
+  dirty = true;
+  for (const ch of [...holder.children]) {
+    holder.remove(ch);
+    if (ch.geometry !== geo) ch.geometry?.dispose();
+  }
+  const smooth = toCreasedNormals(geo, THREE.MathUtils.degToRad(32));
+  const mesh = new THREE.Mesh(smooth, mat);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  wireMesh = new THREE.Mesh(geo, wireMat);
+  wireMesh.visible = LOOK.wire;
+  edgeLines = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), edgeMat);
+  edgeLines.visible = LOOK.edges;
+  holder.add(mesh, wireMesh, edgeLines);
+  const box = new THREE.Box3().setFromObject(holder), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+  const R = Math.max(size.x, size.y, size.z) || 1, prev = stage;
+  stage = { box, c, R };
+  buildStage();
+  keyLight.position.copy(c).add(new THREE.Vector3(1, 2, 1.5).normalize().multiplyScalar(R * 3));
+  keyLight.target.position.copy(c);
+  const sc = keyLight.shadow.camera;
+  sc.left = sc.bottom = -R * 1.3;
+  sc.right = sc.top = R * 1.3;
+  sc.near = R * 0.2;
+  sc.far = R * 7;
+  sc.updateProjectionMatrix();
+  keyLight.shadow.bias = -4e-4;
+  keyLight.shadow.normalBias = R * 3e-3;
+  keyLight.shadow.radius = 4;
+  if (prev && Math.abs(R / prev.R - 1) < 0.5) {
+    const d = c.clone().sub(controls.target);
+    camera.position.add(d);
+    controls.target.copy(c);
+  } else {
+    controls.target.copy(c);
+    const rad = size.length() / 2 || 1, tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2), tanMin = tanV * Math.min(1, camera.aspect);
+    camera.position.copy(c).add(new THREE.Vector3(1, 0.8, 1.2).normalize().multiplyScalar(1.1 * rad / Math.sin(Math.atan(tanMin))));
+  }
+  camera.near = R / 1e3;
+  camera.far = R * 100;
+  camera.updateProjectionMatrix();
+}
+applyLook();
+var buildTimer = null;
+function scheduleBuild() {
+  if (!$("autoBuild").checked || !S.ents.length) return;
+  clearTimeout(buildTimer);
+  buildTimer = setTimeout(() => build3D().catch(() => {
+  }), 350);
+}
+$("btnBuild").onclick = () => build3D().catch(() => {
+});
+function normPolys(polys, flipH, flipV, k) {
+  const bb = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const p of polys) bboxOf(p, bb);
+  const map = (x, y) => [(flipH ? bb[2] - x : x - bb[0]) * k, (flipV ? bb[3] - y : y - bb[1]) * k];
+  const out = polys.map((p) => {
+    const q = p.map(([x, y]) => map(x, y));
+    return flipH !== flipV ? q.reverse() : q;
+  });
+  return { polys: out, w: (bb[2] - bb[0]) * k, h: (bb[3] - bb[1]) * k, map };
+}
+var finishOpts = () => ({ kind: $("edgeKind").value, size: Math.max(0, +$("edgeSize").value || 0), profile: $("edgeProfile").checked, caps: $("edgeCaps").checked, concave: $("edgeConcave").checked });
+function buildExtrude(M, keep, k) {
+  const R = getRegion("main"), polys = selectedPolys(R);
+  if (!polys.length) throw new Error("No closed area selected. Check layers / tolerance, or click areas in the 2D view.");
+  const thk = +$("thk").value;
+  if (!(thk > 0)) throw new Error("Thickness must be > 0.");
+  const n = normPolys(polys, false, false, k), f = finishOpts();
+  if (f.kind === "none" || !(f.size > 0) || !(f.profile || f.caps)) return keep(new M.CrossSection(n.polys, "Positive")).extrude(thk);
+  let groups = groupRings(n.polys);
+  if (!groups.length) throw new Error("No usable outline found.");
+  if (f.profile) groups = treatCorners(groups, { kind: f.kind, size: f.size, concave: f.concave });
+  if (!f.caps) return keep(new M.CrossSection(flattenGroups(groups), "Positive")).extrude(thk);
+  let s = Math.min(f.size, thk * 0.49);
+  if (f.kind === "fillet" && f.profile) s *= 0.99;
+  if (!offsetIsValid(M, groups, s)) throw new Error("Edge size is too large for this outline (thin walls or small features). Use a smaller size.");
+  const ms = layeredSolid(groups, capLayers(thk, { kind: f.kind, size: s, top: true, bottom: true }));
+  try {
+    return keep(manifoldFromMesh(M, ms.positions, ms.indices));
+  } catch (e) {
+    throw new Error("Could not build the finished edges \u2013 try a smaller size.");
+  }
+}
+function buildRevolve(M, keep, k) {
+  const R = getRegion("main"), polys = selectedPolys(R);
+  if (!polys.length) throw new Error("No closed profile selected. Check layers / tolerance, or click areas in the 2D view.");
+  const ax = revAxis();
+  if (!ax) throw new Error("Set the revolve axis (Detect centreline / Pick on drawing).");
+  const horiz = ax.dir === "h", bb = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const p of polys) bboxOf(p, bb);
+  const rings = polys.map((p) => {
+    const q = p.map(([x, y]) => horiz ? [(y - ax.pos) * k, (x - bb[0]) * k] : [(x - ax.pos) * k, (y - bb[1]) * k]);
+    return horiz ? q.reverse() : q;
+  });
+  const BIG = 1e7, clip = keep(M.CrossSection.square([BIG, 2 * BIG]).translate([0, -BIG]));
+  const half = keep(keep(new M.CrossSection(rings, "Positive")).intersect(clip)).toPolygons();
+  if (!half.length) throw new Error("The profile is on the wrong side of the axis. Move the axis or switch Vertical / Horizontal.");
+  let groups = groupRings(half);
+  const f = finishOpts();
+  if (f.kind !== "none" && f.size > 0 && f.profile) groups = treatCorners(groups, { kind: f.kind, size: f.size, concave: f.concave, skip: (p) => p[0] < 1e-4 });
+  const seg = +$("revSeg").value || 96, ang = Math.min(360, Math.max(1, +$("revAngle").value || 360));
+  let solid = keep(keep(new M.CrossSection(flattenGroups(groups), "Positive")).revolve(seg, ang));
+  if (horiz) solid = keep(solid.rotate([0, 90, 0]));
+  return solid;
+}
+var VIEW_AX = { front: ["x", "z"], top: ["x", "y"], side: ["y", "z"] };
+var AXI = { x: 0, y: 1, z: 2 };
+function buildOrtho(M, keep, k) {
+  const carve = $("useHidden").checked, v = {};
+  for (const key of ["front", "top", "side"]) {
+    const R = getRegion(key);
+    if (!R) continue;
+    const polys = carve ? R.cells.filter((c) => R.sel.has(c.id)).map((c) => c.poly) : selectedPolys(R);
+    if (!polys.length) continue;
+    v[key] = normPolys(polys, key === "side" && $("flipSide").checked, key === "top" && $("flipTop").checked, k);
+  }
+  const nv = Object.keys(v).length;
+  if (nv < 2) throw new Error("Need at least 2 views with closed outlines (front / top / side).");
+  const W = v.front ? v.front.w : v.top.w, H = v.front ? v.front.h : v.side.h, D = v.top ? v.top.h : v.side.w;
+  const m = Math.max(W, H, D) * 0.05 + 1, parts = [], ext = { x: W, y: D, z: H };
+  if (v.front) parts.push(keep(keep(keep(new M.CrossSection(v.front.polys, "Positive")).extrude(D + 2 * m)).translate([0, 0, -(D + m)])).rotate([90, 0, 0]));
+  if (v.top) parts.push(keep(keep(new M.CrossSection(v.top.polys, "Positive")).extrude(H + 2 * m)).translate([0, 0, -m]));
+  if (v.side) parts.push(keep(keep(keep(new M.CrossSection(v.side.polys, "Positive")).extrude(W + 2 * m)).translate([0, 0, -m])).rotate([90, 0, 90]));
+  let solid = parts[0];
+  for (let i = 1; i < parts.length; i++) solid = keep(solid).intersect(parts[i]);
+  S.carve = [];
+  if (!carve) {
+    $("carveInfo").textContent = "";
+    return solid;
+  }
+  const joinTol = (+$("tol").value || 0) * k;
+  const depthFrom = (key, rng, dl) => {
+    const ax = VIEW_AX[key];
+    let best = null;
+    for (const wk of Object.keys(v)) {
+      if (wk === key) continue;
+      const wax = VIEW_AX[wk], sl = ax.find((c) => wax.includes(c));
+      if (!sl || !wax.includes(dl)) continue;
+      const [s0, s1] = rng[sl], span = s1 - s0, tolS = Math.max(0.03 * span, 3 * joinTol, 1e-3), rect = S.views[wk];
+      let d0 = Infinity, d1 = -Infinity, sides = 0;
+      for (const e of S.ents) {
+        if (!e.dashed || !S.layers.get(e.layer)?.on || !rect || !(e.bb[0] >= rect.x0 && e.bb[1] >= rect.y0 && e.bb[2] <= rect.x1 && e.bb[3] <= rect.y1)) continue;
+        const pts = e.closed ? [...e.pts, e.pts[0]] : e.pts;
+        for (let i = 0; i + 1 < pts.length; i++) {
+          const pa = v[wk].map(pts[i][0], pts[i][1]), pb = v[wk].map(pts[i + 1][0], pts[i + 1][1]);
+          const va = { [wax[0]]: pa[0], [wax[1]]: pa[1] }, vb = { [wax[0]]: pb[0], [wax[1]]: pb[1] };
+          if (Math.abs(va[sl] - vb[sl]) > tolS * 0.5) continue;
+          const sm = (va[sl] + vb[sl]) / 2, n0 = Math.abs(sm - s0) <= tolS, n1 = Math.abs(sm - s1) <= tolS;
+          if (!n0 && !n1) continue;
+          if (Math.abs(va[dl] - vb[dl]) < 0.02 * ext[dl]) continue;
+          d0 = Math.min(d0, va[dl], vb[dl]);
+          d1 = Math.max(d1, va[dl], vb[dl]);
+          sides |= n0 ? 1 : 2;
+        }
+      }
+      if (d1 > d0 && (!best || sides > best.sides)) best = { d0, d1, sides };
+    }
+    return best;
+  };
+  let nBlind = 0, nThrough = 0;
+  for (const key of Object.keys(v)) {
+    const R = S.regions[key], ax = VIEW_AX[key], dl = ["x", "y", "z"].find((c) => !ax.includes(c));
+    for (const c of R.cells) {
+      if (!R.sel.has(c.id)) continue;
+      c.holes.forEach((ring, hi) => {
+        const comp = c.holeComps[hi], filled = R.cells.some((c2) => c2.comp === comp && c2.depth === c.depth + 1 && R.sel.has(c2.id));
+        let nr = ring.map(([x, y]) => v[key].map(x, y));
+        if (ringArea(nr) < 0) nr = nr.reverse();
+        const bu = [Infinity, Infinity, -Infinity, -Infinity];
+        for (const q of nr) {
+          bu[0] = Math.min(bu[0], q[0]);
+          bu[1] = Math.min(bu[1], q[1]);
+          bu[2] = Math.max(bu[2], q[0]);
+          bu[3] = Math.max(bu[3], q[1]);
+        }
+        if (bu[2] - bu[0] < 1e-6 || bu[3] - bu[1] < 1e-6) return;
+        const ev = depthFrom(key, { [ax[0]]: [bu[0], bu[2]], [ax[1]]: [bu[1], bu[3]] }, dl);
+        if (!ev && filled) return;
+        let d0 = -m, d1 = ext[dl] + m, blind = false;
+        if (ev) {
+          const e = ext[dl], tolD = 0.01 * e + 1e-6;
+          d0 = Math.max(0, ev.d0);
+          d1 = Math.min(e, ev.d1);
+          if (d0 <= tolD) d0 = -m;
+          else blind = true;
+          if (d1 >= e - tolD) d1 = e + m;
+          else blind = true;
+          if (d1 - d0 < 1e-3) return;
+        }
+        const ex = keep(keep(new M.CrossSection([nr], "Positive")).extrude(d1 - d0)), mt = new Array(16).fill(0);
+        mt[AXI[ax[0]]] = 1;
+        mt[4 + AXI[ax[1]]] = 1;
+        mt[8 + AXI[dl]] = 1;
+        mt[12 + AXI[dl]] = d0;
+        mt[15] = 1;
+        solid = keep(solid).subtract(keep(ex.transform(mt)));
+        blind ? nBlind++ : nThrough++;
+        S.carve.push({ ring, blind });
+      });
+    }
+  }
+  $("carveInfo").textContent = nBlind + nThrough ? `Hidden-line features: ${nBlind} blind / ${nThrough} through.` : "No hole depths found in the dashed lines.";
+  return solid;
+}
+var building = false;
+async function build3D() {
+  if (building || !S.ents.length) return;
+  building = true;
+  const trash = [];
+  const keep = (o) => {
+    trash.push(o);
+    return o;
+  };
+  try {
+    status("Building 3D\u2026");
+    await nextFrame();
+    const M = await getManifold();
+    const k = (+$("unit").value || 1) * (+$("scale").value || 1);
+    const solid = keep(S.mode === "extrude" ? buildExtrude(M, keep, k) : S.mode === "revolve" ? buildRevolve(M, keep, k) : buildOrtho(M, keep, k));
+    if (solid.isEmpty()) throw new Error("The resulting solid is empty \u2013 check the view assignment / mirroring.");
+    const mesh = solid.getMesh(), np = mesh.numProp, vp = mesh.vertProperties, tv = mesh.triVerts;
+    const pos = new Float32Array(tv.length * 3);
+    for (let i = 0; i < tv.length; i++) {
+      const b = tv[i] * np;
+      pos[i * 3] = vp[b];
+      pos[i * 3 + 1] = vp[b + 1];
+      pos[i * 3 + 2] = vp[b + 2];
+    }
+    const nV = vp.length / np, ip = new Float32Array(nV * 3);
+    for (let i = 0; i < nV; i++) {
+      ip[i * 3] = vp[i * np];
+      ip[i * 3 + 1] = vp[i * np + 1];
+      ip[i * 3 + 2] = vp[i * np + 2];
+    }
+    S.mesh = { positions: ip, indices: Uint32Array.from(tv) };
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    geo.computeVertexNormals();
+    geo.computeBoundingBox();
+    S.geo = geo;
+    S.volume = solid.volume();
+    showGeometry(geo);
+    const s = geo.boundingBox.getSize(new THREE.Vector3());
+    $("stats").textContent = `Size X\xD7Y\xD7Z: ${s.x.toFixed(2)} \xD7 ${s.y.toFixed(2)} \xD7 ${s.z.toFixed(2)} mm
+Volume:      ${(S.volume / 1e3).toFixed(3)} cm\xB3
+Triangles:   ${tv.length / 3}`;
+    ["exSTL", "exOBJ", "exGLB", "exSTEP"].forEach((id) => $(id).disabled = false);
+    draw2D();
+    status("3D model built.", "ok");
+  } catch (e) {
+    console.error(e);
+    status("3D: " + (e.message || e), "err");
+    throw e;
+  } finally {
+    for (const o of new Set(trash)) try {
+      o.delete();
+    } catch (_) {
+    }
+    building = false;
+  }
+}
+function download(data, name, mime) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type: mime }));
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1e4);
+}
+var base = () => (S.fileName || "model") + { extrude: "_extruded", revolve: "_revolved", ortho: "_3view" }[S.mode];
+$("exSTL").onclick = () => {
+  if (S.geo) download(new STLExporter().parse(new THREE.Mesh(S.geo), { binary: true }), base() + ".stl", "model/stl");
+};
+$("exSTEP").onclick = () => {
+  if (!S.mesh) return;
+  try {
+    const h = LOOK.color.slice(1), rgb = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+    const txt = meshToStep({ positions: S.mesh.positions, indices: S.mesh.indices, name: base(), rgb, system: "Drawing2Model by George Joseph" });
+    download(new Blob([txt], { type: "application/step" }), base() + ".step", "application/step");
+    status("STEP written (planar faces; curved surfaces are faceted).", "ok");
+  } catch (e) {
+    console.error(e);
+    status("STEP export failed: " + (e.message || e), "err");
+  }
+};
+$("exOBJ").onclick = () => {
+  if (S.geo) download(new OBJExporter().parse(new THREE.Mesh(S.geo)), base() + ".obj", "text/plain");
+};
+$("exGLB").onclick = () => {
+  if (!S.geo) return;
+  const m = new THREE.Mesh(S.geo, mat.clone());
+  m.name = S.fileName || "model";
+  m.rotation.x = -Math.PI / 2;
+  m.scale.setScalar(1e-3);
+  m.updateMatrixWorld();
+  new GLTFExporter().parse(m, (res) => download(res, base() + ".glb", "model/gltf-binary"), (err) => status("GLB export failed: " + err, "err"), { binary: true });
+};
+window.__d2m = { S, LOOK, meshToStep, setMode, detectCenterline, revAxis, build3D, getRegion, autoViews, setDrawing, getLibreDwg, dwgToModel, explodeModel };
+
+</script>
+</body>
+</html>
